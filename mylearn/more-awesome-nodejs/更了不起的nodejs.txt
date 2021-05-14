@@ -18,4 +18,8 @@ nrm ls　查看源状态
 nrm use npm　切换到源npm
 nrm add youcompany http://register.npm.yourcompany.com/ 添加私有源
 
+二、第三方模块
+１、forever(npm install forever -g)
+专门用来负责进程重启的模块，现在大部分都改用PM2了。
+
 
