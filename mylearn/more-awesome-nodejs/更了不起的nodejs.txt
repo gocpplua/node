@@ -10,6 +10,8 @@ nvm reinstall-packages 14　一键安装全局模块
 ２、npm:node package manage
 npm init --yes 生成package.json文件
 
+备注:另外一种包管理工具Yarn，用于替代NPM
+
 3、nrm:node register manage 解决npm　镜像访问慢的问题，提供测速、切换下载源(registry)功能
 npm install --global nrm 安装nrm
 nrm -h
@@ -21,5 +23,7 @@ nrm add youcompany http://register.npm.yourcompany.com/ 添加私有源
 二、第三方模块
 １、forever(npm install forever -g)
 专门用来负责进程重启的模块，现在大部分都改用PM2了。
+
+
 
 
