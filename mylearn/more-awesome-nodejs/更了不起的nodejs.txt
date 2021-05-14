@@ -1,0 +1,5 @@
+常用命令:
+nvm ls-remote
+nvm ls
+nvm reinstall-packages 14
+nvm install 10.0.0
