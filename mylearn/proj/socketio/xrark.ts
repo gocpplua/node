@@ -11,9 +11,17 @@ export class XRArk{
 
 };
 
+
+
 let gXRArk = new XRArk();
 gXRArk.app_ = new Application();
 
+
+console.log(typeof gXRArk.components_)
+Object.keys(gXRArk.components_).forEach(key => {
+  console.log(key)
+  gXRArk.app_.load(gXRArk.components_[key])
+})
 
 gXRArk.app_.load(gXRArk.components_.event)
 gXRArk.app_.load(gXRArk.components_.event1) // output:ignore duplicate component: "event"
