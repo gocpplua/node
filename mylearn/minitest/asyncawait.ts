@@ -1,5 +1,5 @@
-import { resolve } from "path/posix";
-
+// 理解 JavaScript 的 async/await: https://segmentfault.com/a/1190000007535316
+// [阮一峰]async 函数的含义和用法: http://www.ruanyifeng.com/blog/2015/05/async.html
 function delay(){
     return new Promise(resolve=>{
         setTimeout(() => {
