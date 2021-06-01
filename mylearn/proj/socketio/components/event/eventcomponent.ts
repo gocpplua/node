@@ -3,7 +3,7 @@ export class Event implements IComponent{
   constructor(){
     console.log('Event constructor');
   }
-  name: string = 'event';
+  name: string = '__event__';
   beforeStart?: (cb: () => void) => void;
   afterStart?: (cb: () => void) => void;
   afterStartAll?: () => void;
