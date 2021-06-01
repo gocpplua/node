@@ -55,3 +55,21 @@ if(typeof gXRArk.app_.components["__event__"]["start"] === 'function'){
     console.log('3')
   });
 }
+
+
+const port = 3001
+var server = require('http').createServer();
+var io = require('socket.io')(server);
+io.on('connection', function(client){
+  // https://www.tutorialspoint.com/socket.io/socket.io_rooms.htm
+  // https://devdocs.io/socketio~2/server-api#socket-in-room
+  client.join("room")
+  io.sockets.in('room').emit('XXXX', 'gocpplua') // 向room中的连接发送"XXXX"事件,参数是:gocpplua
+});
+server.listen(port);
+console.log('sio Server listening at port %d', port);
+
+// Uncaught exception handler
+process.on('uncaughtException', function(err) {
+	console.error(' Caught exception: ' + err.stack);
+});
