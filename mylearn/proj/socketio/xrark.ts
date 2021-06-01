@@ -60,12 +60,26 @@ if(typeof gXRArk.app_.components["__event__"]["start"] === 'function'){
 const port = 3001
 var server = require('http').createServer();
 var io = require('socket.io')(server);
+
 io.on('connection', function(client){
   // https://www.tutorialspoint.com/socket.io/socket.io_rooms.htm
   // https://devdocs.io/socketio~2/server-api#socket-in-room
-  client.join("room")
-  io.sockets.in('room').emit('XXXX', 'gocpplua') // 向room中的连接发送"XXXX"事件,参数是:gocpplua
+  console.log(client.id)
+  client.join("room", () =>{
+    console.log(client.rooms)
+    io.sockets.in('room').emit('XXXX', 'gocpplua') // 向room中的连接发送"XXXX"事件,参数是:gocpplua
+  })
+
+  client.broadcast.emit('XXXX', 'gocpplua broadcast') // everyone gets it but the sender
+  
+  // console.log(client.client) // https://zhuanlan.zhihu.com/p/29148869
+
+  client.on('disconnect', (reason)=>{
+    console.log(`${client.id} disconnect:${reason}`)
+  })
 });
+
+
 server.listen(port);
 console.log('sio Server listening at port %d', port);
 
