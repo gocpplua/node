@@ -70,6 +70,9 @@ io.on('connection', function(client){
     io.sockets.in('room').emit('XXXX', 'gocpplua') // 向room中的连接发送"XXXX"事件,参数是:gocpplua
   })
 
+  // 房间'room' 所有的玩家
+  let socketstmp = io.nsps['/'].adapter.rooms['room'].sockets;
+
   client.broadcast.emit('XXXX', 'gocpplua broadcast') // everyone gets it but the sender
   
   // console.log(client.client) // https://zhuanlan.zhihu.com/p/29148869
