@@ -1,3 +1,5 @@
+const rest = require('./rest');
+
 // 导入controller middleware:
 const controller = require('./controller');
 
@@ -15,6 +17,9 @@ const app = new Koa();
 
 // koa-bodyparser必须在router之前被注册到app对象上
 app.use(bodyParser());
+
+// bind .rest() for ctx:
+app.use(rest.restify());
 
 // 使用middleware:
 app.use(controller());
