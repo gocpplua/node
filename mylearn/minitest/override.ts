@@ -1,7 +1,7 @@
-function add(a: number);
-function add(a: number, b: number);
-function add(a: number, b: number, c: number, d: number);
-function add(a: number, b?: number, c?: number, d?: number){
+function add(a: number):void;
+function add(a: number, b: number):void;
+function add(a: number, b: number, c: number, d: number):void;
+function add(a: number, b?: number, c?: number, d?: number):void{
   console.log(a);
 }
 
