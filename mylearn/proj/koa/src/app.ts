@@ -41,6 +41,10 @@ console.log(path.join('sslfile/server.key'))
 var options = {
   key: fs.readFileSync(path.join('sslfile/server.key')),  //ssl文件路径
   cert: fs.readFileSync(path.join('sslfile/server.crt'))  //ssl文件路径
+
+  // 下述路径也可以
+  //key: fs.readFileSync(('./sslfile/server.key')),  //ssl文件路径
+  //cert: fs.readFileSync(('./sslfile/server.crt'))  //ssl文件路径
 };
 https.createServer(options, app.callback()).listen(3001)
 //app.listen(3000);
