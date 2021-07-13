@@ -4,9 +4,12 @@ import * as fs from "fs";
 const path = require("path");
 
 const rest = require('./rest');
+import "reflect-metadata";
+import {createConnection} from "typeorm";
+import {User} from "./entity/User";
 
 // 导入controller middleware:
-const controller = require('./controller');
+import { controller } from "./controller";
 
 // 导入koa，和koa 1.x不同，在koa2中，我们导入的是一个class，因此用大写的Koa表示:
 const Koa = require('koa');
@@ -34,7 +37,7 @@ app.use(rest.restify());
 app.use(controller());
 
 // 在端口3000监听:
-http.createServer(app.callback()).listen(3000)
+http.createServer(app.callback()).listen(4000)
 
 console.log(path.join('sslfile/server.key'))
 // SSL options
@@ -46,6 +49,34 @@ var options = {
   //key: fs.readFileSync(('./sslfile/server.key')),  //ssl文件路径
   //cert: fs.readFileSync(('./sslfile/server.crt'))  //ssl文件路径
 };
-https.createServer(options, app.callback()).listen(3001)
+https.createServer(options, app.callback()).listen(4001)
 //app.listen(3000);
-console.log('app started at port http:3000 https:3001...');
+console.log('app started at port http:4000 https:4001...');
+
+
+createConnection({
+  type: "mysql",
+  host: "localhost",
+  port: 3306,
+  username: "root",
+  password: "123456",
+  database: "test",
+  synchronize: true,
+  entities: [User]
+}).then(async connection => {
+
+  console.log("Inserting a new user into the database...");
+  const user = new User();
+  user.firstName = "Timber";
+  user.lastName = "Saw";
+  user.age = 25;
+  await connection.manager.save(user);
+  console.log("Saved a new user with id: " + user.id);
+
+  console.log("Loading users from the database...");
+  const users = await connection.manager.find(User);
+  console.log("Loaded users: ", users);
+
+  console.log("Here you can setup and run express/koa/any other framework.");
+
+}).catch(error => console.log(error));
