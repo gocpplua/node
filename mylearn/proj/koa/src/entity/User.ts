@@ -1,18 +1,16 @@
 import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Name} from "./Name";
 
 @Entity()
 export class User {
-
+    
     @PrimaryGeneratedColumn()
-    id: number;
-
+    id: string;
+    
+    @Column(type => Name)
+    name: Name;
+    
     @Column()
-    firstName: string;
-
-    @Column()
-    lastName: string;
-
-    @Column()
-    age: number;
-
+    isActive: boolean;
+    
 }

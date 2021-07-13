@@ -10,6 +10,7 @@ import {User} from "./entity/User";
 
 // 导入controller middleware:
 import { controller } from "./controller";
+import { Name } from "./entity/Name";
 
 // 导入koa，和koa 1.x不同，在koa2中，我们导入的是一个class，因此用大写的Koa表示:
 const Koa = require('koa');
@@ -62,14 +63,15 @@ createConnection({
   password: "123456",
   database: "test",
   synchronize: true,
-  entities: [User]
+  entities: [User, Name]
 }).then(async connection => {
 
   console.log("Inserting a new user into the database...");
   const user = new User();
-  user.firstName = "Timber";
-  user.lastName = "Saw";
-  user.age = 25;
+  user.name = new Name();
+  user.name.first = "Timber";
+  user.name.last = "Saw";
+  user.isActive = true;
   await connection.manager.save(user);
   console.log("Saved a new user with id: " + user.id);
 
