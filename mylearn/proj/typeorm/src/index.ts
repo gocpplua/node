@@ -9,8 +9,8 @@ createConnection().then(async connection => {
     console.log("Inserting a new user into the database...");
    
     //testUser();
-    //testPhoto();
-    testGetRelationObj();
+    testPhoto();
+    //testGetRelationObj();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -48,16 +48,19 @@ let testPhoto = async function(){
  metadata.comment = "cybershoot";
  metadata.orientation = "portait";
  metadata.photo = photo; // 联接两者
+ 
+ 
+ photo.metadata = metadata; // this way we connect them
 
  // 获取实体 repositories
  let photoRepository = getRepository(Photo);
  let metadataRepository = getRepository(PhotoMetadata);
 
  // 先保存photo
- await photoRepository.save(photo);
+ await photoRepository.save(photo); // 如果 Photo.ts中 metadata 的属性 添加cascade: true，那么保存 Photo的同时，也保存了 PhotoMetadata
 
  // 然后保存photo的metadata
- await metadataRepository.save(metadata);
+ // await metadataRepository.save(metadata);
 
  // 完成
  console.log("Metadata is saved, and relation between metadata and photo is created in the database too");    
