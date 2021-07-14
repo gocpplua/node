@@ -9,8 +9,8 @@ createConnection().then(async connection => {
     console.log("Inserting a new user into the database...");
    
     //testUser();
-
-    testPhoto();
+    //testPhoto();
+    testGetRelationObj();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -61,4 +61,13 @@ let testPhoto = async function(){
 
  // 完成
  console.log("Metadata is saved, and relation between metadata and photo is created in the database too");    
+}
+
+// 取出关系对象的数据
+let testGetRelationObj = async function(){
+    let photoRepository = getRepository(Photo);
+    let photos = await photoRepository.find({
+        relations:['metadata']
+    })
+    console.log(photos[0])
 }
