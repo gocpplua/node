@@ -1,20 +1,15 @@
 import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import { Name } from "./Name";
 export enum UserRole{
     ADMIN = 'admin',
     EDITOR = 'editor'
 }
 
 @Entity({database: "test1"})
-export class User {
+export class User extends Name{
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    firstName: string;
-
-    @Column()
-    lastName: string;
 
     @Column()
     age: number;
