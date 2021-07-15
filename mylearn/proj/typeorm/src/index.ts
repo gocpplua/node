@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {createConnection, getRepository} from "typeorm";
+import {createConnection, getConnection, getRepository} from "typeorm";
 import { Album } from "./entity/Album";
 import { Photo } from "./entity/Photo";
 import { PhotoMetadata } from "./entity/PhotoMetadata";
@@ -13,7 +13,8 @@ createConnection().then(async connection => {
     //testPhoto();
     //testGetRelationObj();
     //testAlbums();
-    testQueryBuilder();
+    //testQueryBuilder();
+    testHasMetadata();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -112,4 +113,11 @@ let testQueryBuilder = async function(){
   .where("photo1.isPublished = true")
   .getMany()
   console.log(photos)
+}
+
+let testHasMetadata = async function(){
+    let connect = getConnection();
+    if(connect.hasMetadata(User)){
+        console.log(`${connect.name} has User Entity`);
+    }
 }
