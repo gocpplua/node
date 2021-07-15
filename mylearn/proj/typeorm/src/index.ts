@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import {createConnection, getRepository} from "typeorm";
+import { Album } from "./entity/Album";
 import { Photo } from "./entity/Photo";
 import { PhotoMetadata } from "./entity/PhotoMetadata";
 import {User} from "./entity/User";
@@ -9,8 +10,9 @@ createConnection().then(async connection => {
     console.log("Inserting a new user into the database...");
    
     //testUser();
-    testPhoto();
+    //testPhoto();
     //testGetRelationObj();
+    testAlbums();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -73,4 +75,32 @@ let testGetRelationObj = async function(){
         relations:['metadata']
     })
     console.log(photos[0])
+}
+
+let testAlbums = async function(){
+    // create a few albums
+let albumRepository = getRepository(Album);
+let album1 = new Album();
+album1.name = "Bears";
+await albumRepository.save(album1);
+
+let album2 = new Album();
+album2.name = "Me";
+await albumRepository.save(album2);
+
+// create a few photos
+let photo = new Photo();
+photo.name = "Me and Bears";
+photo.description = "I am near polar bears";
+photo.views = 1;
+photo.filename = "photo-with-bears.jpg";
+photo.isPublished = true;
+photo.albums = [album1, album2];
+await getRepository(Photo).save(photo);
+
+const loadedPhoto = await getRepository(Photo).findOne(1, { relations: ["albums"] });
+console.log(loadedPhoto); // 会输出 albums
+
+const loadedPhoto1 = await getRepository(Photo).findOne(1);
+console.log(loadedPhoto1); // 不会输出 albums
 }
