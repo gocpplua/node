@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn} from "typeorm";
 import { Name } from "./Name";
 export enum UserRole{
     ADMIN = 'admin',
@@ -12,7 +12,7 @@ export class User extends Name{
     id: number;
 
     @Column()
-    age: number;
+    private m_age: number;
 
     @Column({
         // 不设置的话，数据库类型就是:varchar(255)
@@ -24,4 +24,16 @@ export class User extends Name{
 
     @Column('simple-array')
     names: string[];
+
+    @CreateDateColumn()
+    data: string;
+
+
+    public get age(){
+        return this.m_age;
+    }
+
+    public set age(age: number){
+        this.m_age = age;
+    }
 }
