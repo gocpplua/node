@@ -119,5 +119,8 @@ let testHasMetadata = async function(){
     let connect = getConnection();
     if(connect.hasMetadata(User)){
         console.log(`${connect.name} has User Entity`);
+
+        const userEntity = connect.getMetadata(User);
+        console.log(userEntity)
     }
 }
