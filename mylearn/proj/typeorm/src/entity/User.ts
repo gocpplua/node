@@ -1,8 +1,9 @@
 import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
-enum UserRole{
+export enum UserRole{
     ADMIN = 'admin',
     EDITOR = 'editor'
 }
+
 @Entity({database: "test1"})
 export class User {
 
@@ -25,4 +26,7 @@ export class User {
         default: UserRole.ADMIN
     })
     role: UserRole
+
+    @Column('simple-array')
+    names: string[];
 }

@@ -3,18 +3,18 @@ import {createConnection, getConnection, getRepository} from "typeorm";
 import { Album } from "./entity/Album";
 import { Photo } from "./entity/Photo";
 import { PhotoMetadata } from "./entity/PhotoMetadata";
-import {User} from "./entity/User";
+import {User, UserRole} from "./entity/User";
 
 createConnection().then(async connection => {
 
     console.log("Inserting a new user into the database...");
    
-    //testUser();
+    testUser();
     //testPhoto();
     //testGetRelationObj();
     //testAlbums();
     //testQueryBuilder();
-    testHasMetadata();
+    //testHasMetadata();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -25,12 +25,14 @@ let testUser = async function(){
     user.firstName = "Timber";
     user.lastName = "Saw";
     user.age = 25;
+    user.role = UserRole.ADMIN;
+    user.names = ['chen', 'qi']
     let userRepository = getRepository(User)
     await userRepository.save(user);
     console.log("Saved a new user with id: " + user.id);
 
     console.log("Loading users from the database...");
-    const users = await userRepository.find(user);
+    const users = await userRepository.find();
     console.log("Loaded users: ", users);
 }
 
