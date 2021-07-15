@@ -12,7 +12,8 @@ createConnection().then(async connection => {
     //testUser();
     //testPhoto();
     //testGetRelationObj();
-    testAlbums();
+    //testAlbums();
+    testQueryBuilder();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -103,4 +104,12 @@ console.log(loadedPhoto); // 会输出 albums
 
 const loadedPhoto1 = await getRepository(Photo).findOne(1);
 console.log(loadedPhoto1); // 不会输出 albums
+}
+
+let testQueryBuilder = async function(){
+    let photos = await getRepository(Photo)
+  .createQueryBuilder("photo1") // first argument is an alias. Alias is what you are selecting - photos. You must specify it.
+  .where("photo1.isPublished = true")
+  .getMany()
+  console.log(photos)
 }
