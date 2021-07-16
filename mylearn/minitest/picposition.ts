@@ -1,7 +1,8 @@
+// npm install exif
 var ExifImage = require('exif').ExifImage;
  
 try {
-    new ExifImage({ image : '/home/SENSETIME/chenqi1/Desktop/d.jpeg' }, function (error, exifData) {
+    new ExifImage({ image : '/home/XX/XX/Desktop/d.jpeg' }, function (error, exifData) {
         if (error)
             console.log('Error: '+error.message);
         else
