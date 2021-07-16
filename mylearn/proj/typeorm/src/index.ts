@@ -6,6 +6,8 @@ import { Photo } from "./entity/Photo";
 import { PhotoMetadata } from "./entity/PhotoMetadata";
 import {User, UserRole} from "./entity/User";
 import { Question } from "./entity/Question";
+import { Profile1 } from "./entity/Profile1";
+import { User1 } from "./entity/User1";
 
 createConnection().then(async connection => {
 
@@ -17,7 +19,8 @@ createConnection().then(async connection => {
     //testAlbums();
     //testQueryBuilder();
     //testHasMetadata();
-    testQuestion();
+    //testQuestion();
+    testUser1();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -143,4 +146,35 @@ let testQuestion = async function(){
     question.categories = [category1, category2];
     let questionRepository = await getRepository(Question)
     await questionRepository.save(question);
+}
+
+let testUser1 = async function(){
+    /*
+    const profile = new Profile1();
+    profile.gender = "male";
+    profile.photo = "me.jpg";
+    await getConnection().manager.save(profile);
+
+    const user = new User1();
+    user.name = "Joe Smith";
+    user.profile1 = profile;
+    await getConnection().manager.save(user);
+    //*/
+
+    /*
+    const userRepository = getConnection().getRepository(User1);
+    const users = await userRepository.find({ relations: ["profile1"] });
+    console.log(users)
+
+    const usersWithout = await userRepository.find();
+    console.log(usersWithout)
+    //*/
+
+    const profileRepository = getConnection().getRepository(Profile1);
+    const profiles = await profileRepository.find({ relations: ["user2"] });
+    console.log(profiles)
+
+    const profileWithout = await profileRepository.find();
+    console.log(profileWithout)
+
 }
