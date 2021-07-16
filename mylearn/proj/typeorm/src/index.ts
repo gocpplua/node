@@ -1,20 +1,23 @@
 import "reflect-metadata";
 import {createConnection, getConnection, getRepository} from "typeorm";
+import { Category } from "./entity/Category";
 import { Album } from "./entity/Album";
 import { Photo } from "./entity/Photo";
 import { PhotoMetadata } from "./entity/PhotoMetadata";
 import {User, UserRole} from "./entity/User";
+import { Question } from "./entity/Question";
 
 createConnection().then(async connection => {
 
     console.log("Inserting a new user into the database...");
    
-    testUser();
+    //testUser();
     //testPhoto();
     //testGetRelationObj();
     //testAlbums();
     //testQueryBuilder();
     //testHasMetadata();
+    testQuestion();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -40,7 +43,7 @@ let testUser = async function(){
 let testPhoto = async function(){
  // 创建 photo
  let photo = new Photo();
- photo.name = "Me and Bears";
+ photo.name = "Mee and Bears";
  photo.description = "I am near polar bears";
  photo.filename = "photo-with-bears.jpg";
  photo.views = 1;
@@ -78,7 +81,7 @@ let testGetRelationObj = async function(){
     let photos = await photoRepository.find({
         relations:['metadata']
     })
-    console.log(photos[0])
+    console.log(photos)
 }
 
 let testAlbums = async function(){
@@ -125,4 +128,19 @@ let testHasMetadata = async function(){
         const userEntity = connect.getMetadata(User);
         console.log(userEntity)
     }
+}
+
+let testQuestion = async function(){
+    const category1 = new Category();
+    category1.name = "animals";
+
+    const category2 = new Category();
+    category2.name = "zoo";
+
+    const question = new Question();
+    question.title = 'gocpplua';
+    question.text = 'gocpplua'
+    question.categories = [category1, category2];
+    let questionRepository = await getRepository(Question)
+    await questionRepository.save(question);
 }
