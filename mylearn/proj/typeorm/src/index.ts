@@ -227,6 +227,13 @@ let testQueryBuilder2 = async function(){
     .select("user")
     .from(User2, "user")
     .where("user.id < 3")
+    .printSql()
     .getMany()
     console.log(user2)
+
+    console.log('---------------')
+    const sql = await getRepository(User2).createQueryBuilder("user")
+    .where("user.id < 3")
+    .getSql()
+    console.log(sql)  
 }
