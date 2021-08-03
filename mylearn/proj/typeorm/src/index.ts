@@ -8,6 +8,8 @@ import {User, UserRole} from "./entity/User";
 import { Question } from "./entity/Question";
 import { Profile1 } from "./entity/Profile1";
 import { User1 } from "./entity/User1";
+import { Photo2 } from "./entity/Photo2";
+import { User2 } from "./entity/User2";
 
 createConnection().then(async connection => {
 
@@ -20,7 +22,8 @@ createConnection().then(async connection => {
     //testQueryBuilder();
     //testHasMetadata();
     //testQuestion();
-    testUser1();
+    //testUser1();
+    testUser2();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -177,4 +180,22 @@ let testUser1 = async function(){
     const profileWithout = await profileRepository.find();
     console.log(profileWithout)
 
+}
+
+// manytoone
+let testUser2 = async function(){
+    let connection = getConnection();
+
+    const photo1 = new Photo2();
+    photo1.url = "me.jpg";
+    await connection.manager.save(photo1);
+    
+    const photo2 = new Photo2();
+    photo2.url = "me-and-bears.jpg";
+    await connection.manager.save(photo2);
+    
+    const user = new User2();
+    user.name = "John";
+    user.photos = [photo1, photo2];
+    await connection.manager.save(user);
 }
