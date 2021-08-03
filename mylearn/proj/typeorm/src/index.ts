@@ -198,4 +198,12 @@ let testUser2 = async function(){
     user.name = "John";
     user.photos = [photo1, photo2];
     await connection.manager.save(user);
+
+    const userRepository = connection.getRepository(User2);
+    const users = await userRepository.find({ relations: ["photos"] });
+    console.log(users)
+
+    const photoRepository = connection.getRepository(Photo2);
+    const photos = await photoRepository.find({ relations: ["user"] });
+    console.log(photos)
 }
