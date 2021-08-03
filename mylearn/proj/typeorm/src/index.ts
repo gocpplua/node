@@ -24,7 +24,8 @@ createConnection().then(async connection => {
     //testQuestion();
     //testUser1();
     //testUser2();
-    testQueryBuilder2();
+    //testQueryBuilder2();
+    testGetRawMany();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -236,4 +237,13 @@ let testQueryBuilder2 = async function(){
     .where("user.id < 3")
     .getSql()
     console.log(sql)  
+}
+
+let testGetRawMany = async function(){
+    const user1 = await getRepository(User2).createQueryBuilder("user")
+    .select("user.id")
+    .addSelect("SUM(user.id)", "sum")
+    .where("user.id = :id", { id: 1 })
+    .getRawMany();
+    console.log(user1); // [ RowDataPacket { user_id: 1, sum: '1' } ]    
 }
