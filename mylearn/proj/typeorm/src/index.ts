@@ -23,7 +23,8 @@ createConnection().then(async connection => {
     //testHasMetadata();
     //testQuestion();
     //testUser1();
-    testUser2();
+    //testUser2();
+    testQueryBuilder2();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -206,4 +207,26 @@ let testUser2 = async function(){
     const photoRepository = connection.getRepository(Photo2);
     const photos = await photoRepository.find({ relations: ["user"] });
     console.log(photos)
+}
+
+let testQueryBuilder2 = async function(){
+    /*
+    createQueryBuilder("user") 相当于：
+
+    createQueryBuilder()
+    .select("user")
+    .from(User, "user");
+    */
+    const user1 = await getRepository(User2).createQueryBuilder("user")
+    .where("user.id < 3")
+    .getMany()
+    console.log(user1)
+
+    console.log('---------------')
+    const user2 = await getRepository(User2).createQueryBuilder()
+    .select("user")
+    .from(User2, "user")
+    .where("user.id < 3")
+    .getMany()
+    console.log(user2)
 }
