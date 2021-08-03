@@ -25,7 +25,8 @@ createConnection().then(async connection => {
     //testUser1();
     //testUser2();
     //testQueryBuilder2();
-    testGetRawMany();
+    //testGetRawMany();
+    testRelation();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -245,5 +246,36 @@ let testGetRawMany = async function(){
     .addSelect("SUM(user.id)", "sum")
     .where("user.id = :id", { id: 1 })
     .getRawMany();
-    console.log(user1); // [ RowDataPacket { user_id: 1, sum: '1' } ]    
+    console.log(user1); // [ RowDataPacket { user_id: 1, sum: '1' } ] 
+    
+    
+    const stream = await getRepository(User)
+  .createQueryBuilder("user")
+  .where("user.id = :id", { id: 1 })
+  .stream();
+  console.log(stream);
+}
+
+let testRelation = async function(){
+    const question = new Question();
+    question.title = 'gocpplua';
+    question.text = 'gocpplua'
+    await getRepository(Question).save(question);
+
+    const category3 = new Category();
+        category3.name = "category #3";
+        await getRepository(Category).save(category3);
+
+// 下面两种方式类似，但是第一种效率更加好
+    /*方式一*/
+    await getRepository(Question)
+  .createQueryBuilder()
+  .relation(Question, "categories")
+  .of(question)
+  .add(category3);
+
+  // 方式二
+  const p = await getRepository(Question).findOne(1, {relations: ["categories"]});
+  p.categories.push(category3);
+  await getRepository(Question).save(p);
 }
