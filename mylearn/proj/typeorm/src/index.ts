@@ -11,6 +11,7 @@ import { User1 } from "./entity/User1";
 import { Photo2 } from "./entity/Photo2";
 import { User2 } from "./entity/User2";
 import { Post } from "./entity/Post";
+import { validate } from "class-validator";
 
 createConnection().then(async connection => {
 
@@ -286,7 +287,12 @@ let testRelation = async function(){
 let testPost = async function(){
     const p = new Post;
     p.text = 'text';
-    p.title = 'title'
+    p.title = 'titletitletitle'
+    const errors = await validate(p)
+    console.log(` errors.length = ${errors.length}`)
+    if(errors.length > 0){
+        console.log("数据有问题，不过我们这里就不返回了，依然执行save")
+    }
     getRepository(Post).save(p);
 
     const post = await getRepository(Post).findOne(1)

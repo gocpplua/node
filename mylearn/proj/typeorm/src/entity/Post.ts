@@ -1,3 +1,4 @@
+import { Length } from "class-validator";
 import { Entity, Column, PrimaryGeneratedColumn, AfterLoad } from "typeorm";
 
 @Entity()
@@ -10,6 +11,7 @@ export class Post {
   id: number;
 
   @Column()
+  @Length(1,10)
   title: string;
 
   @Column()
