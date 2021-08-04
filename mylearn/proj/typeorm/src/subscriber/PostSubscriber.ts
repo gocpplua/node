@@ -3,6 +3,7 @@ import {EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent} fr
 
 @EventSubscriber()
 export class PostSubscriber implements EntitySubscriberInterface<Post> {
+    // 监听 Post， 要监听任何实体，你只需省略listenTo方法并使用any，如:AnySubscriber.ts
     listenTo() {
         return Post;
     }
