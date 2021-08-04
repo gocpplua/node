@@ -10,6 +10,7 @@ import { Profile1 } from "./entity/Profile1";
 import { User1 } from "./entity/User1";
 import { Photo2 } from "./entity/Photo2";
 import { User2 } from "./entity/User2";
+import { Post } from "./entity/Post";
 
 createConnection().then(async connection => {
 
@@ -26,7 +27,8 @@ createConnection().then(async connection => {
     //testUser2();
     //testQueryBuilder2();
     //testGetRawMany();
-    testRelation();
+    //testRelation();
+    testPost();
     console.log("Here you can setup and run express/koa/any other framework.");
 
 }).catch(error => console.log(error));
@@ -279,4 +281,14 @@ let testRelation = async function(){
   const p = await getRepository(Question).findOne(1, {relations: ["categories"]});
   p.categories.push(category3);
   await getRepository(Question).save(p);
+}
+
+let testPost = async function(){
+    const p = new Post;
+    p.text = 'text';
+    p.title = 'title'
+    getRepository(Post).save(p);
+
+    const post = await getRepository(Post).findOne(1)
+    console.log(post)
 }
