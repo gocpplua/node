@@ -271,8 +271,9 @@ let testRelation = async function(){
     await getRepository(Question)
   .createQueryBuilder()
   .relation(Question, "categories")
-  .of(question)
+  .of(question) 
   .add(category3);
+  // .of(1) // 当进行绑定时，可以不需要使用实体，只需要使用实体 ID 即可。 例如，让我们在 id 为 1 的 Question 中添加 category3
 
   // 方式二
   const p = await getRepository(Question).findOne(1, {relations: ["categories"]});
