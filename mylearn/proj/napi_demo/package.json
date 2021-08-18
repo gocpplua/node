@@ -4,16 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node-gyp rebuild",
+    "build": "node-gyp rebuild &&  ts-node bin/addon.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^16.6.1",
     "node-gyp": "^8.1.0"
   },
   "dependencies": {
-    "node-addon-api": "^4.0.0"
+    "node-addon-api": "^4.0.0",
+    "ts-node": "^10.2.0",
+    "typescript": "^4.3.5"
   }
 }
