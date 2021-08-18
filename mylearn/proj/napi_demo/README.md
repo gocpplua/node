@@ -3,7 +3,7 @@
 To run the example:
 - `npm install`
 - `npm run build` //This is mostly not needed. But just in case
-- `node index.js`
+- `node index.js` // or ts-node tsindex.ts
 
 ```
 npm install -g ts-node
