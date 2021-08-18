@@ -46,3 +46,5 @@ FFI 技术，限制就会比较多,首先，它只能调用其他动态库，如
 综上比较，如果只调用第三方 DLL（而且恰好是_cdecl导出），使用 FFI 就再合适不过了（虽然性能可能会有一定的损失，而且调试起来会有困难）。
 
 其实，从理论上来讲，FFI 也是基于 AddOn 技术的，只是它可以帮你把在 JS 中定义的接口直接转换成 C 语言的接口，并利用 NodeJS 的 Buffer 内存，将其同载入的 DLL 共享。当然由于 FFI 的这种通用性，也导致了一定的性能损失。
+
+##### [如何在JavaScript中调用C++动态链接库](https://xinyuehtx.github.io/post/%E5%A6%82%E4%BD%95%E5%9C%A8JavaScript%E4%B8%AD%E8%B0%83%E7%94%A8C++%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5%E5%BA%93.html)
