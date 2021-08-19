@@ -1,0 +1,44 @@
+{
+  "version": "0.3.0",
+  "scope": "tree",
+  "id": "8a2f4189-21e9-4ce5-b357-24e74256c95e",
+  "title": "A behavior tree",
+  "description": "",
+  "root": "86d1cea4-617d-41e5-a0da-997025d3fd98",
+  "properties": {},
+  "nodes": {
+    "86d1cea4-617d-41e5-a0da-997025d3fd98": {
+      "id": "86d1cea4-617d-41e5-a0da-997025d3fd98",
+      "name": "Sequence",
+      "title": "Sequence",
+      "description": "",
+      "properties": {},
+      "display": {
+        "x": 120,
+        "y": 12
+      },
+      "children": [
+        "9d855ca9-f685-429b-832b-7fef89c9f2b5"
+      ]
+    },
+    "9d855ca9-f685-429b-832b-7fef89c9f2b5": {
+      "id": "9d855ca9-f685-429b-832b-7fef89c9f2b5",
+      "name": "Succeeder",
+      "title": "Succeeder",
+      "description": "",
+      "properties": {},
+      "display": {
+        "x": 324,
+        "y": 24
+      }
+    }
+  },
+  "display": {
+    "camera_x": 927.5,
+    "camera_y": 445.5,
+    "camera_z": 1,
+    "x": -96,
+    "y": 36
+  },
+  "custom_nodes": []
+}
