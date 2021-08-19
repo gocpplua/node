@@ -14,7 +14,10 @@ let ai = treeLoader.ai;
 console.log('**** Lucky tries the door');
 let lucky = {
   memory : new  b3.Blackboard(),
-  aa: 1
+  aa: 1,
+  happy: function(){
+    console.log("call happy")
+  }
 }
 
 lucky.memory.set('name', 'Lucky');

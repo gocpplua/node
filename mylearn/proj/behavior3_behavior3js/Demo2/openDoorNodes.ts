@@ -4,6 +4,10 @@ function actions(action : any) {
   action('walkToDoor', {
       tick: function(tick : any) {
           console.log('[walkToDoor] tick.target', tick.target)
+          if(tick.target && tick.target.happy){
+            tick.target.happy()
+          }
+          
           tick.blackboard.set('walking', 1);
           let name = tick.blackboard.get('name');
           console.log(name + ' is walking to the door');
