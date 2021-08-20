@@ -5,10 +5,11 @@ console.log(b3.VERSION)
 
 let demoJson = readFileSync(__dirname + '/demo.json', 'utf8')
 
-import * as treeLoader from './treeLoader'
-treeLoader.init();
+import {treeLoader} from './treeLoader'
+let treeLoaderObj = new treeLoader()
+treeLoaderObj.init();
 
-let ai = treeLoader.ai;
+let guyTree = treeLoaderObj.getTree('guy');
 
 
 console.log('**** Lucky tries the door');
@@ -28,7 +29,7 @@ lucky.memory.set('name', 'Lucky');
 * for custom nodes. 
 */
 // 我们在action('walkToDoor')中的匿名函数中，就可以打印 tick.target
-ai.get('guy').tick(lucky, lucky.memory); 
+guyTree.tick(lucky, lucky.memory); 
 
 console.log('**** Thief tries the door');
 var thief = {
@@ -38,4 +39,4 @@ thief.memory.set('name', 'Thief');
 thief.memory.set('locked', true);
 thief.memory.set('lockpick-level', 8);
 
-ai.get('guy').tick(thief, thief.memory);
+guyTree.tick(thief, thief.memory);
