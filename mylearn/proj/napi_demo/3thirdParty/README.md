@@ -3,6 +3,12 @@ To run the example:
 1. 生成.so文件
 ```
 gcc -shared -o libhello.so -fPIC hello.cpp
+
+mkdir build 
+cd build 
+cmake ..
+make
+
 ```
 2、 安装依赖
 ```
