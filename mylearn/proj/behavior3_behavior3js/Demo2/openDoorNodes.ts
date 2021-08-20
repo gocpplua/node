@@ -4,6 +4,7 @@ export class OpenDoorNodes{
         action('walkToDoor', {
             tick: function(tick : any) {
                 console.log('[walkToDoor] tick.target', tick.target)
+                console.log('[walkToDoor] tick._openNodes', tick._openNodes)
                 if(tick.target && tick.target.happy){
                     tick.target.happy()
                 }

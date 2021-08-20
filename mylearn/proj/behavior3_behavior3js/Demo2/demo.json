@@ -2,7 +2,7 @@
   "version": "0.3.0",
   "scope": "tree",
   "id": "5f4ca383-fe10-41c3-86f7-7931fd086968",
-  "title": "root",
+  "title": "A Behavior Tree",
   "description": "",
   "root": "4976592d-0fe9-4088-8d8e-67a2c0ba98de",
   "properties": {},
@@ -60,10 +60,12 @@
       "name": "walkToDoor",
       "title": "walkToDoor",
       "description": "",
-      "properties": {},
+      "properties": {
+        "wtdPro": 1
+      },
       "display": {
-        "x": -552,
-        "y": -504
+        "x": -600,
+        "y": -588
       }
     },
     "b555ede2-1600-4cdc-9df4-111454e26dac": {
@@ -73,8 +75,8 @@
       "description": "",
       "properties": {},
       "display": {
-        "x": -132,
-        "y": -336
+        "x": -192,
+        "y": -408
       }
     },
     "6e0ae324-d48d-4084-89f7-54f89061d82d": {
@@ -139,8 +141,8 @@
       "description": "",
       "properties": {},
       "display": {
-        "x": -336,
-        "y": -372
+        "x": -360,
+        "y": -456
       },
       "children": [
         "ae8c258c-ee24-4741-8914-b3e3b4ff4eca",
@@ -154,8 +156,8 @@
       "description": "",
       "properties": {},
       "display": {
-        "x": -132,
-        "y": -420
+        "x": -204,
+        "y": -516
       }
     }
   },
@@ -219,6 +221,14 @@
       "version": "0.3.0",
       "scope": "node",
       "name": "IsDoorUnlocked",
+      "category": "condition",
+      "title": "IsDoorUnlocked",
+      "properties": {}
+    },
+    {
+      "version": "0.3.0",
+      "scope": "node",
+      "name": "IsDoorUnlocked111",
       "category": "condition",
       "title": "IsDoorUnlocked",
       "properties": {}
