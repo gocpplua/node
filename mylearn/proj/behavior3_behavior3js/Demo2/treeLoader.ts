@@ -1,6 +1,6 @@
 var b3 = require('behavior3js')
 
-import { OpenDoorNodes} from './openDoorNodes'
+import { OpenDoorNodes} from './openDoorTree'
 
 export class treeLoader{
   private customNode: Object = {}

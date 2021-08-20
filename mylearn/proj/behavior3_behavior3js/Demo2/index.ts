@@ -15,7 +15,6 @@ let guyTree = treeLoaderObj.getTree('guy');
 console.log('**** Lucky tries the door');
 let lucky = {
   memory : new  b3.Blackboard(),
-  aa: 1,
   happy: function(){
     console.log("call happy")
   }
