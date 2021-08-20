@@ -40,3 +40,16 @@ thief.memory.set('locked', true);
 thief.memory.set('lockpick-level', 8);
 
 guyTree.tick(thief, thief.memory);
+
+console.log('**** Thug tries the door');
+var thug = {
+    memory:  new b3.Blackboard()
+};
+thug.memory.set('name', 'Thug');
+thug.memory.set('locked', true);
+thug.memory.set('lockpick-level', 2);
+
+guyTree.tick(thug, thug.memory);
+console.log('');
+console.log('');
+console.log('**** Simulation complete');
