@@ -1,6 +1,6 @@
 var b3 = require('behavior3js')
 
-import { OpenDoorNodes} from './openDoorTree'
+import { OpenDoorTree} from './openDoorTree'
 
 export class treeLoader{
   private customNode: Object = {}
@@ -17,19 +17,17 @@ export class treeLoader{
     return node;
   }
 
-  private loadAction(name:string, properties: object){
+  public loadAction(name:string, properties: object){
     return this.loadNode(name, properties, b3.Action)
   }
 
-  private loadCondition(name:string, properties: object){
+  public loadCondition(name:string, properties: object){
     return this.loadNode(name, properties, b3.Condition)
   }
 
-  public init(){
-    let openDoorNodes = new OpenDoorNodes()
-    openDoorNodes.init(this.loadAction.bind(this), this.loadCondition.bind(this));
-    this.ai.set('guy', new b3.BehaviorTree())
-    this.ai.get('guy').load(require('./demo.json'), this.customNode)
+  public init(treename: string, jsonObj: Object){
+    this.ai.set(treename, new b3.BehaviorTree())
+    this.ai.get(treename).load(jsonObj, this.customNode)
   }
 
   public getTree(treeName: string){

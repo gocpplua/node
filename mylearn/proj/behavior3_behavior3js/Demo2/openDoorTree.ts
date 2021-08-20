@@ -1,13 +1,13 @@
 let b3 = require('behavior3js')
-export class OpenDoorNodes{
+export class OpenDoorTree{
     private actions(action : any) {
         action('walkToDoor', {
             tick: function(tick : any) {
-                console.log('[walkToDoor] tick.target', tick.target)
-                console.log('[walkToDoor] tick._openNodes', tick._openNodes)
-                if(tick.target && tick.target.happy){
-                    tick.target.happy()
-                }
+                //console.log('[walkToDoor] tick.target', tick.target)
+                //console.log('[walkToDoor] tick._openNodes', tick._openNodes)
+                //if(tick.target && tick.target.happy){
+                //    tick.target.happy()
+                //}
                 
                 tick.blackboard.set('walking', 1);
                 let name = tick.blackboard.get('name');
