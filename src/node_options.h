@@ -11,6 +11,10 @@
 #include "node_mutex.h"
 #include "util.h"
 
+#if HAVE_OPENSSL
+#include "openssl/opensslv.h"
+#endif
+
 namespace node {
 
 class HostPort {
@@ -101,26 +105,30 @@ class EnvironmentOptions : public Options {
  public:
   bool abort_on_uncaught_exception = false;
   std::vector<std::string> conditions;
+  std::string dns_result_order;
   bool enable_source_maps = false;
-  bool experimental_json_modules = false;
-  bool experimental_modules = false;
+  bool experimental_fetch = true;
+  bool experimental_global_web_crypto = false;
+  bool experimental_https_modules = false;
   std::string experimental_specifier_resolution;
   bool experimental_wasm_modules = false;
   bool experimental_import_meta_resolve = false;
   std::string module_type;
   std::string experimental_policy;
   std::string experimental_policy_integrity;
-  bool has_policy_integrity_string;
-  bool experimental_repl_await = false;
+  bool has_policy_integrity_string = false;
+  bool experimental_repl_await = true;
   bool experimental_vm_modules = false;
   bool expose_internals = false;
   bool frozen_intrinsics = false;
   int64_t heap_snapshot_near_heap_limit = 0;
   std::string heap_snapshot_signal;
   uint64_t max_http_header_size = 16 * 1024;
-  bool no_deprecation = false;
-  bool no_force_async_hooks_checks = false;
-  bool no_warnings = false;
+  bool deprecation = true;
+  bool force_async_hooks_checks = true;
+  bool allow_native_addons = true;
+  bool global_search_paths = true;
+  bool warnings = true;
   bool force_context_aware = false;
   bool pending_deprecation = false;
   bool preserve_symlinks = false;
@@ -140,6 +148,8 @@ class EnvironmentOptions : public Options {
 #endif  // HAVE_INSPECTOR
   std::string redirect_warnings;
   std::string diagnostic_dir;
+  bool test_runner = false;
+  bool test_only = false;
   bool test_udp_no_try_send = false;
   bool throw_deprecation = false;
   bool trace_atomics_wait = false;
@@ -149,8 +159,9 @@ class EnvironmentOptions : public Options {
   bool trace_tls = false;
   bool trace_uncaught = false;
   bool trace_warnings = false;
+  bool extra_info_on_fatal_exception = true;
   std::string unhandled_rejections;
-  std::string userland_loader;
+  std::vector<std::string> userland_loaders;
   bool verify_base_objects =
 #ifdef DEBUG
       true;
@@ -192,10 +203,9 @@ class PerIsolateOptions : public Options {
  public:
   std::shared_ptr<EnvironmentOptions> per_env { new EnvironmentOptions() };
   bool track_heap_objects = false;
-  bool no_node_snapshot = false;
   bool report_uncaught_exception = false;
   bool report_on_signal = false;
-  bool experimental_top_level_await = true;
+  bool experimental_shadow_realm = false;
   std::string report_signal = "SIGUSR2";
   inline EnvironmentOptions* get_per_env_options();
   void CheckOptions(std::vector<std::string>* errors) override;
@@ -220,6 +230,11 @@ class PerProcessOptions : public Options {
   bool zero_fill_all_buffers = false;
   bool debug_arraybuffer_allocations = false;
   std::string disable_proto;
+  bool build_snapshot = false;
+  // We enable the shared read-only heap which currently requires that the
+  // snapshot used in different isolates in the same process to be the same.
+  // Therefore --node-snapshot is a per-process option.
+  bool node_snapshot = true;
 
   std::vector<std::string> security_reverts;
   bool print_bash_completion = false;
@@ -247,6 +262,9 @@ class PerProcessOptions : public Options {
   bool use_bundled_ca = false;
   bool enable_fips_crypto = false;
   bool force_fips_crypto = false;
+#endif
+#if OPENSSL_VERSION_MAJOR >= 3
+  bool openssl_legacy_provider = false;
 #endif
 
   // Per-process because reports can be triggered outside a known V8 context.
@@ -300,7 +318,8 @@ class OptionsParser {
   void AddOption(const char* name,
                  const char* help_text,
                  bool Options::* field,
-                 OptionEnvvarSettings env_setting = kDisallowedInEnvironment);
+                 OptionEnvvarSettings env_setting = kDisallowedInEnvironment,
+                 bool default_is_true = false);
   void AddOption(const char* name,
                  const char* help_text,
                  uint64_t Options::* field,
@@ -423,6 +442,7 @@ class OptionsParser {
     std::shared_ptr<BaseOptionField> field;
     OptionEnvvarSettings env_setting;
     std::string help_text;
+    bool default_is_true = false;
   };
 
   // An implied option is composed of the information on where to store a
@@ -456,7 +476,7 @@ class OptionsParser {
   template <typename OtherOptions>
   friend class OptionsParser;
 
-  friend void GetOptions(const v8::FunctionCallbackInfo<v8::Value>& args);
+  friend void GetCLIOptions(const v8::FunctionCallbackInfo<v8::Value>& args);
   friend std::string GetBashCompletion();
 };
 

@@ -25,14 +25,15 @@ struct RsaKeyPairParams final : public MemoryRetainer {
   unsigned int modulus_bits;
   unsigned int exponent;
 
-  // The following used for RSA-PSS
+  // The following options are used for RSA-PSS. If any of them are set, a
+  // RSASSA-PSS-params sequence will be added to the key.
   const EVP_MD* md = nullptr;
   const EVP_MD* mgf1_md = nullptr;
-  int saltlen = 0;
+  int saltlen = -1;
 
   SET_NO_MEMORY_INFO()
-  SET_MEMORY_INFO_NAME(RsaKeyPairParams);
-  SET_SELF_SIZE(RsaKeyPairParams);
+  SET_MEMORY_INFO_NAME(RsaKeyPairParams)
+  SET_SELF_SIZE(RsaKeyPairParams)
 };
 
 using RsaKeyPairGenConfig = KeyPairGenConfig<RsaKeyPairParams>;
@@ -88,8 +89,8 @@ struct RSACipherConfig final : public MemoryRetainer {
   RSACipherConfig(RSACipherConfig&& other) noexcept;
 
   void MemoryInfo(MemoryTracker* tracker) const override;
-  SET_MEMORY_INFO_NAME(RSACipherConfig);
-  SET_SELF_SIZE(RSACipherConfig);
+  SET_MEMORY_INFO_NAME(RSACipherConfig)
+  SET_SELF_SIZE(RSACipherConfig)
 };
 
 struct RSACipherTraits final {
@@ -132,6 +133,7 @@ v8::Maybe<bool> GetRsaKeyDetail(
 
 namespace RSAAlg {
 void Initialize(Environment* env, v8::Local<v8::Object> target);
+void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 }  // namespace RSAAlg
 }  // namespace crypto
 }  // namespace node

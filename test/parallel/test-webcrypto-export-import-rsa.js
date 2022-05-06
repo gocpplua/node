@@ -1,15 +1,14 @@
 'use strict';
 
 const common = require('../common');
+const fixtures = require('../common/fixtures');
 
 if (!common.hasCrypto)
   common.skip('missing crypto');
 
-if (common.hasOpenSSL3)
-  common.skip('temporarily skipping for OpenSSL 3.0-alpha15');
-
 const assert = require('assert');
-const { subtle } = require('crypto').webcrypto;
+const crypto = require('crypto');
+const { subtle } = crypto.webcrypto;
 
 const sizes = [1024, 2048, 4096];
 
@@ -481,3 +480,79 @@ const testVectors = [
   });
   await Promise.all(variations);
 })().then(common.mustCall());
+
+{
+  const publicPem = fixtures.readKey('rsa_pss_public_2048.pem', 'ascii');
+  const privatePem = fixtures.readKey('rsa_pss_private_2048.pem', 'ascii');
+
+  const publicDer = Buffer.from(
+    publicPem.replace(
+      /(?:-----(?:BEGIN|END) PUBLIC KEY-----|\s)/g,
+      ''
+    ),
+    'base64'
+  );
+  const privateDer = Buffer.from(
+    privatePem.replace(
+      /(?:-----(?:BEGIN|END) PRIVATE KEY-----|\s)/g,
+      ''
+    ),
+    'base64'
+  );
+
+  (async () => {
+    const key = await subtle.importKey(
+      'spki',
+      publicDer,
+      { name: 'RSA-PSS', hash: 'SHA-256' },
+      true,
+      ['verify']);
+    const jwk = await subtle.exportKey('jwk', key);
+    assert.strictEqual(jwk.alg, 'PS256');
+  })().then(common.mustCall());
+
+  (async () => {
+    const key = await subtle.importKey(
+      'pkcs8',
+      privateDer,
+      { name: 'RSA-PSS', hash: 'SHA-256' },
+      true,
+      ['sign']);
+    const jwk = await subtle.exportKey('jwk', key);
+    assert.strictEqual(jwk.alg, 'PS256');
+  })().then(common.mustCall());
+}
+
+{
+  const ecPublic = crypto.createPublicKey(
+    fixtures.readKey('ec_p256_public.pem'));
+  const ecPrivate = crypto.createPrivateKey(
+    fixtures.readKey('ec_p256_private.pem'));
+
+  for (const [name, [publicUsage, privateUsage]] of Object.entries({
+    'RSA-PSS': ['verify', 'sign'],
+    'RSASSA-PKCS1-v1_5': ['verify', 'sign'],
+    'RSA-OAEP': ['encrypt', 'decrypt'],
+  })) {
+    assert.rejects(subtle.importKey(
+      'node.keyObject',
+      ecPublic,
+      { name, hash: 'SHA-256' },
+      true, [publicUsage]), { message: /Invalid key type/ });
+    assert.rejects(subtle.importKey(
+      'node.keyObject',
+      ecPrivate,
+      { name, hash: 'SHA-256' },
+      true, [privateUsage]), { message: /Invalid key type/ });
+    assert.rejects(subtle.importKey(
+      'spki',
+      ecPublic.export({ format: 'der', type: 'spki' }),
+      { name, hash: 'SHA-256' },
+      true, [publicUsage]), { message: /Invalid key type/ });
+    assert.rejects(subtle.importKey(
+      'pkcs8',
+      ecPrivate.export({ format: 'der', type: 'pkcs8' }),
+      { name, hash: 'SHA-256' },
+      true, [privateUsage]), { message: /Invalid key type/ });
+  }
+}

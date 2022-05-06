@@ -25,6 +25,14 @@ const iterable = {
     yield 'c';
   }
 };
+
+const veryLargeBuffer = {
+  expected: 'dogs running'.repeat(512 * 1024),
+  *[Symbol.iterator]() {
+    yield Buffer.from('dogs running'.repeat(512 * 1024), 'utf8');
+  }
+};
+
 function iterableWith(value) {
   return {
     *[Symbol.iterator]() {
@@ -66,9 +74,10 @@ async function doWriteStreamWithCancel() {
   const controller = new AbortController();
   const { signal } = controller;
   process.nextTick(() => controller.abort());
-  assert.rejects(fsPromises.writeFile(otherDest, stream, { signal }), {
-    name: 'AbortError'
-  });
+  await assert.rejects(
+    fsPromises.writeFile(otherDest, stream, { signal }),
+    { name: 'AbortError' }
+  );
 }
 
 async function doWriteIterable() {
@@ -106,6 +115,12 @@ async function doWriteAsyncIterable() {
   assert.deepStrictEqual(data, asyncIterable.expected);
 }
 
+async function doWriteAsyncLargeIterable() {
+  await fsPromises.writeFile(dest, veryLargeBuffer);
+  const data = fs.readFileSync(dest, 'utf-8');
+  assert.deepStrictEqual(data, veryLargeBuffer.expected);
+}
+
 async function doWriteInvalidValues() {
   await Promise.all(
     [42, 42n, {}, Symbol('42'), true, undefined, null, NaN].map((value) =>
@@ -120,9 +135,10 @@ async function doWriteWithCancel() {
   const controller = new AbortController();
   const { signal } = controller;
   process.nextTick(() => controller.abort());
-  assert.rejects(fsPromises.writeFile(otherDest, buffer, { signal }), {
-    name: 'AbortError'
-  });
+  await assert.rejects(
+    fsPromises.writeFile(otherDest, buffer, { signal }),
+    { name: 'AbortError' }
+  );
 }
 
 async function doAppend() {
@@ -158,5 +174,6 @@ async function doReadWithEncoding() {
   await doWriteIterableWithEncoding();
   await doWriteBufferIterable();
   await doWriteAsyncIterable();
+  await doWriteAsyncLargeIterable();
   await doWriteInvalidValues();
 })().then(common.mustCall());

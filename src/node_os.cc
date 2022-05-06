@@ -20,6 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "env-inl.h"
+#include "node_external_reference.h"
 #include "string_bytes.h"
 
 #ifdef __MINGW32__
@@ -173,7 +174,8 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
   char ip[INET6_ADDRSTRLEN];
   char netmask[INET6_ADDRSTRLEN];
   std::array<char, 18> mac;
-  Local<String> name, family;
+  Local<String> name;
+  Local<Integer> family;
 
   int err = uv_interface_addresses(&interfaces, &count);
 
@@ -213,14 +215,14 @@ static void GetInterfaceAddresses(const FunctionCallbackInfo<Value>& args) {
     if (interfaces[i].address.address4.sin_family == AF_INET) {
       uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));
       uv_ip4_name(&interfaces[i].netmask.netmask4, netmask, sizeof(netmask));
-      family = env->ipv4_string();
+      family = Integer::New(env->isolate(), 4);
     } else if (interfaces[i].address.address4.sin_family == AF_INET6) {
       uv_ip6_name(&interfaces[i].address.address6, ip, sizeof(ip));
       uv_ip6_name(&interfaces[i].netmask.netmask6, netmask, sizeof(netmask));
-      family = env->ipv6_string();
+      family = Integer::New(env->isolate(), 6);
     } else {
       strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
-      family = env->unknown_string();
+      family = Integer::New(env->isolate(), 0);
     }
 
     result.emplace_back(name);
@@ -398,7 +400,23 @@ void Initialize(Local<Object> target,
               Boolean::New(env->isolate(), IsBigEndian())).Check();
 }
 
+void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+  registry->Register(GetHostname);
+  registry->Register(GetLoadAvg);
+  registry->Register(GetUptime);
+  registry->Register(GetTotalMemory);
+  registry->Register(GetFreeMemory);
+  registry->Register(GetCPUInfo);
+  registry->Register(GetInterfaceAddresses);
+  registry->Register(GetHomeDirectory);
+  registry->Register(GetUserInfo);
+  registry->Register(SetPriority);
+  registry->Register(GetPriority);
+  registry->Register(GetOSInformation);
+}
+
 }  // namespace os
 }  // namespace node
 
 NODE_MODULE_CONTEXT_AWARE_INTERNAL(os, node::os::Initialize)
+NODE_MODULE_EXTERNAL_REFERENCE(os, node::os::RegisterExternalReferences)

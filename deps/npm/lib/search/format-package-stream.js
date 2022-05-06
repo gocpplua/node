@@ -31,8 +31,9 @@ class JSONOutputStream extends Minipass {
     if (!this._didFirst) {
       super.write('[\n')
       this._didFirst = true
-    } else
+    } else {
       super.write('\n,\n')
+    }
 
     try {
       return super.write(JSON.stringify(obj))
@@ -42,7 +43,7 @@ class JSONOutputStream extends Minipass {
   }
 
   end () {
-    super.write(this._didFirst ? ']\n' : '\n]\n')
+    super.write(this._didFirst ? ']\n' : '\n[]\n')
     super.end()
   }
 }
@@ -93,8 +94,9 @@ function prettify (data, num, opts) {
     }
   )
   output = trimToMaxWidth(output)
-  if (opts.color)
+  if (opts.color) {
     output = highlightSearchTerms(output, opts.args)
+  }
 
   return output
 }
@@ -109,7 +111,7 @@ function addColorMarker (str, arg, i) {
 
   if (arg.charAt(0) === '/') {
     return str.replace(
-      new RegExp(arg.substr(1, arg.length - 2), 'gi'),
+      new RegExp(arg.slice(1, -1), 'gi'),
       bit => markStart + bit + markEnd
     )
   }
@@ -119,9 +121,9 @@ function addColorMarker (str, arg, i) {
   var p = 0
 
   return pieces.map(function (piece) {
-    piece = str.substr(p, piece.length)
+    piece = str.slice(p, p + piece.length)
     var mark = markStart +
-               str.substr(p + piece.length, arg.length) +
+               str.slice(p + piece.length, p + piece.length + arg.length) +
                markEnd
     p += piece.length + arg.length
     return piece + mark

@@ -13,6 +13,7 @@
 
 #include <openssl/x509.h>
 #include <openssl/pkcs12.h>
+#include <openssl/rand.h>
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
 #endif  // !OPENSSL_NO_ENGINE
@@ -338,6 +339,47 @@ void SecureContext::Initialize(Environment* env, Local<Object> target) {
                              IsExtraRootCertsFileLoaded);
 }
 
+void SecureContext::RegisterExternalReferences(
+    ExternalReferenceRegistry* registry) {
+  registry->Register(New);
+  registry->Register(Init);
+  registry->Register(SetKey);
+  registry->Register(SetCert);
+  registry->Register(AddCACert);
+  registry->Register(AddCRL);
+  registry->Register(AddRootCerts);
+  registry->Register(SetCipherSuites);
+  registry->Register(SetCiphers);
+  registry->Register(SetSigalgs);
+  registry->Register(SetECDHCurve);
+  registry->Register(SetDHParam);
+  registry->Register(SetMaxProto);
+  registry->Register(SetMinProto);
+  registry->Register(GetMaxProto);
+  registry->Register(GetMinProto);
+  registry->Register(SetOptions);
+  registry->Register(SetSessionIdContext);
+  registry->Register(SetSessionTimeout);
+  registry->Register(Close);
+  registry->Register(LoadPKCS12);
+  registry->Register(SetTicketKeys);
+  registry->Register(SetFreeListLength);
+  registry->Register(EnableTicketKeyCallback);
+  registry->Register(GetTicketKeys);
+  registry->Register(GetCertificate<true>);
+  registry->Register(GetCertificate<false>);
+
+#ifndef OPENSSL_NO_ENGINE
+  registry->Register(SetEngineKey);
+  registry->Register(SetClientCertEngine);
+#endif  // !OPENSSL_NO_ENGINE
+
+  registry->Register(CtxGetter);
+
+  registry->Register(GetRootCertificates);
+  registry->Register(IsExtraRootCertsFileLoaded);
+}
+
 SecureContext* SecureContext::Create(Environment* env) {
   Local<Object> obj;
   if (!GetConstructorTemplate(env)
@@ -466,6 +508,9 @@ void SecureContext::Init(const FunctionCallbackInfo<Value>& args) {
   }
 
   sc->ctx_.reset(SSL_CTX_new(method));
+  if (!sc->ctx_) {
+    return ThrowCryptoError(env, ERR_get_error(), "SSL_CTX_new");
+  }
   SSL_CTX_set_app_data(sc->ctx_.get(), sc);
 
   // Disable SSLv2 in the case when method == TLS_method() and the
@@ -474,6 +519,9 @@ void SecureContext::Init(const FunctionCallbackInfo<Value>& args) {
   // SSLv3 is disabled because it's susceptible to downgrade attacks (POODLE.)
   SSL_CTX_set_options(sc->ctx_.get(), SSL_OP_NO_SSLv2);
   SSL_CTX_set_options(sc->ctx_.get(), SSL_OP_NO_SSLv3);
+#if OPENSSL_VERSION_MAJOR >= 3
+  SSL_CTX_set_options(sc->ctx_.get(), SSL_OP_ALLOW_CLIENT_RENEGOTIATION);
+#endif
 
   // Enable automatic cert chaining. This is enabled by default in OpenSSL, but
   // disabled by default in BoringSSL. Enable it explicitly to make the
@@ -992,6 +1040,8 @@ void SecureContext::LoadPKCS12(const FunctionCallbackInfo<Value>& args) {
     // TODO(@jasnell): Should this use ThrowCryptoError?
     unsigned long err = ERR_get_error();  // NOLINT(runtime/int)
     const char* str = ERR_reason_error_string(err);
+    str = str != nullptr ? str : "Unknown error";
+
     return env->ThrowError(str);
   }
 }
@@ -1110,7 +1160,7 @@ int SecureContext::TicketKeyCallback(SSL* ssl,
     return -1;
   }
 
-  argv[2] = env != 0 ? v8::True(env->isolate()) : v8::False(env->isolate());
+  argv[2] = enc != 0 ? v8::True(env->isolate()) : v8::False(env->isolate());
 
   Local<Value> ret;
   if (!node::MakeCallback(

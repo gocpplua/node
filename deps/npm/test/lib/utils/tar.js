@@ -2,18 +2,20 @@ const t = require('tap')
 const pack = require('libnpmpack')
 const ssri = require('ssri')
 
-const { logTar, getContents } = require('../../../lib/utils/tar.js')
+const { getContents } = require('../../../lib/utils/tar.js')
 
-const printLogs = (tarball, unicode) => {
+const mockTar = ({ notice }) => t.mock('../../../lib/utils/tar.js', {
+  'proc-log': {
+    notice,
+  },
+})
+
+const printLogs = (tarball, options) => {
   const logs = []
-  logTar(tarball, {
-    log: {
-      notice: (...args) => {
-        args.map(el => logs.push(el))
-      },
-    },
-    unicode,
+  const { logTar } = mockTar({
+    notice: (...args) => args.map(el => logs.push(el)),
   })
+  logTar(tarball, options)
   return logs.join('\n')
 }
 
@@ -26,6 +28,9 @@ t.test('should log tarball contents', async (t) => {
         'bundle-dep',
       ],
     }, null, 2),
+    cat: 'meow',
+    chai: 'blub',
+    dog: 'woof',
     node_modules: {
       'bundle-dep': 'toto',
     },
@@ -38,42 +43,24 @@ t.test('should log tarball contents', async (t) => {
     version: '1.0.0',
   }, tarball)
 
-  t.matchSnapshot(printLogs(tarballContents, false))
+  t.matchSnapshot(printLogs(tarballContents))
 })
 
 t.test('should log tarball contents with unicode', async (t) => {
-  const { logTar } = t.mock('../../../lib/utils/tar.js', {
-    npmlog: {
-      notice: (str) => {
-        t.ok(true, 'defaults to npmlog')
-        return str
-      },
+  const { logTar } = mockTar({
+    notice: (str) => {
+      t.ok(true, 'defaults to proc-log')
+      return str
     },
   })
 
   logTar({
     files: [],
     bundled: [],
+    size: 0,
+    unpackedSize: 0,
     integrity: '',
   }, { unicode: true })
-  t.end()
-})
-
-t.test('should default to npmlog', async (t) => {
-  const { logTar } = t.mock('../../../lib/utils/tar.js', {
-    npmlog: {
-      notice: (str) => {
-        t.ok(true, 'defaults to npmlog')
-        return str
-      },
-    },
-  })
-
-  logTar({
-    files: [],
-    bundled: [],
-    integrity: '',
-  })
   t.end()
 })
 

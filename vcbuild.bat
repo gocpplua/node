@@ -82,6 +82,7 @@ if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
 if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
 if /i "%1"=="arm64"         set target_arch=arm64&goto arg-ok
 if /i "%1"=="vs2019"        set target_env=vs2019&goto arg-ok
+if /i "%1"=="vs2022"        set target_env=vs2022&goto arg-ok
 if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
 if /i "%1"=="projgen"       set projgen=1&goto arg-ok
 if /i "%1"=="nobuild"       set nobuild=1&goto arg-ok
@@ -91,9 +92,9 @@ if /i "%1"=="nosnapshot"    set nosnapshot=1&goto arg-ok
 if /i "%1"=="noetw"         set noetw=1&goto arg-ok
 if /i "%1"=="ltcg"          set ltcg=1&goto arg-ok
 if /i "%1"=="licensertf"    set licensertf=1&goto arg-ok
-if /i "%1"=="test"          set test_args=%test_args% -J %common_test_suites%&set lint_cpp=1&set lint_js=1&set lint_md=1&goto arg-ok
-if /i "%1"=="test-ci-native" set test_args=%test_args% %test_ci_args% -J -p tap --logfile test.tap %CI_NATIVE_SUITES% %CI_DOC%&set build_addons=1&set build_js_native_api_tests=1&set build_node_api_tests=1&set cctest_args=%cctest_args% --gtest_output=xml:cctest.junit.xml&goto arg-ok
-if /i "%1"=="test-ci-js"    set test_args=%test_args% %test_ci_args% -J -p tap --logfile test.tap %CI_JS_SUITES%&set no_cctest=1&goto arg-ok
+if /i "%1"=="test"          set test_args=%test_args% %common_test_suites%&set lint_cpp=1&set lint_js=1&set lint_md=1&goto arg-ok
+if /i "%1"=="test-ci-native" set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap %CI_NATIVE_SUITES% %CI_DOC%&set build_addons=1&set build_js_native_api_tests=1&set build_node_api_tests=1&set cctest_args=%cctest_args% --gtest_output=xml:cctest.junit.xml&goto arg-ok
+if /i "%1"=="test-ci-js"    set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap %CI_JS_SUITES%&set no_cctest=1&goto arg-ok
 if /i "%1"=="build-addons"   set build_addons=1&goto arg-ok
 if /i "%1"=="build-js-native-api-tests"   set build_js_native_api_tests=1&goto arg-ok
 if /i "%1"=="build-node-api-tests"   set build_node_api_tests=1&goto arg-ok
@@ -102,7 +103,7 @@ if /i "%1"=="test-doc"      set test_args=%test_args% %CI_DOC%&set doc=1&&set li
 if /i "%1"=="test-js-native-api"   set test_args=%test_args% js-native-api&set build_js_native_api_tests=1&goto arg-ok
 if /i "%1"=="test-node-api"   set test_args=%test_args% node-api&set build_node_api_tests=1&goto arg-ok
 if /i "%1"=="test-benchmark" set test_args=%test_args% benchmark&goto arg-ok
-if /i "%1"=="test-simple"   set test_args=%test_args% sequential parallel -J&goto arg-ok
+if /i "%1"=="test-simple"   set test_args=%test_args% sequential parallel&goto arg-ok
 if /i "%1"=="test-message"  set test_args=%test_args% message&goto arg-ok
 if /i "%1"=="test-tick-processor" set test_args=%test_args% tick-processor&goto arg-ok
 if /i "%1"=="test-internet" set test_args=%test_args% internet&goto arg-ok
@@ -176,6 +177,7 @@ set "node_exe=%config%\node.exe"
 set "node_gyp_exe="%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp"
 set "npm_exe="%~dp0%node_exe%" %~dp0deps\npm\bin\npm-cli.js"
 if "%target_env%"=="vs2019" set "node_gyp_exe=%node_gyp_exe% --msvs_version=2019"
+if "%target_env%"=="vs2022" set "node_gyp_exe=%node_gyp_exe% --msvs_version=2022"
 
 :: skip building if the only argument received was lint
 if "%*"=="lint" if exist "%node_exe%" goto lint-cpp
@@ -196,7 +198,6 @@ if defined target_arch      set configure_flags=%configure_flags% --dest-cpu=%ta
 if defined openssl_no_asm   set configure_flags=%configure_flags% --openssl-no-asm
 if defined DEBUG_HELPER     set configure_flags=%configure_flags% --verbose
 if "%target_arch%"=="x86" if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set configure_flags=%configure_flags% --no-cross-compiling
-if "%target_arch%"=="arm64" set configure_flags=%configure_flags% --cross-compiling
 
 if not exist "%~dp0deps\icu" goto no-depsicu
 if "%target%"=="Clean" echo deleting %~dp0deps\icu
@@ -238,6 +239,46 @@ set vcvarsall_arg=%msvs_host_arch%_%target_arch%
 if %target_arch%==x64 if %msvs_host_arch%==amd64 set vcvarsall_arg=amd64
 @rem also if both are x86
 if %target_arch%==x86 if %msvs_host_arch%==x86 set vcvarsall_arg=x86
+
+@rem Look for Visual Studio 2022
+:vs-set-2022
+if defined target_env if "%target_env%" NEQ "vs2022" goto vs-set-2019
+echo Looking for Visual Studio 2022
+@rem VCINSTALLDIR may be set if run from a VS Command Prompt and needs to be
+@rem cleared first as vswhere_usability_wrapper.cmd doesn't when it fails to
+@rem detect the version searched for
+if not defined target_env set "VCINSTALLDIR="
+call tools\msvs\vswhere_usability_wrapper.cmd "[17.0,18.0)" "prerelease"
+if "_%VCINSTALLDIR%_" == "__" goto vs-set-2019
+set "WIXSDKDIR=%WIX%\SDK\VS2017"
+if defined msi (
+  echo Looking for WiX installation for Visual Studio 2022...
+  if not exist "%WIXSDKDIR%" (
+    echo Failed to find WiX install for Visual Studio 2022
+    echo VS2022 support for WiX is only present starting at version 3.XX
+    goto vs-set-2019
+  )
+  if not exist "%VCINSTALLDIR%\..\MSBuild\Microsoft\WiX" (
+    echo Failed to find the WiX Toolset Visual Studio 2022 Extension
+    goto vs-set-2019
+  )
+)
+@rem check if VS2022 is already setup, and for the requested arch
+if "_%VisualStudioVersion%_" == "_17.0_" if "_%VSCMD_ARG_TGT_ARCH%_"=="_%target_arch%_" goto found_vs2022
+@rem need to clear VSINSTALLDIR for vcvarsall to work as expected
+set "VSINSTALLDIR="
+@rem prevent VsDevCmd.bat from changing the current working directory
+set "VSCMD_START_DIR=%CD%"
+set vcvars_call="%VCINSTALLDIR%\Auxiliary\Build\vcvarsall.bat" %vcvarsall_arg%
+echo calling: %vcvars_call%
+call %vcvars_call%
+if errorlevel 1 goto vs-set-2019
+if defined DEBUG_HELPER @ECHO ON
+:found_vs2022
+echo Found MSVS version %VisualStudioVersion%
+set GYP_MSVS_VERSION=2022
+set PLATFORM_TOOLSET=v143
+goto msbuild-found
 
 @rem Look for Visual Studio 2019
 :vs-set-2019
@@ -295,7 +336,7 @@ if defined projgen goto run-configure
 if not exist node.sln goto run-configure
 if not exist .gyp_configure_stamp goto run-configure
 echo %configure_flags% > .tmp_gyp_configure_stamp
-where /R . /T *.gyp? >> .tmp_gyp_configure_stamp
+where /R . /T *.gyp* >> .tmp_gyp_configure_stamp
 fc .gyp_configure_stamp .tmp_gyp_configure_stamp >NUL 2>&1
 if errorlevel 1 goto run-configure
 
@@ -316,7 +357,7 @@ if not exist node.sln goto create-msvs-files-failed
 set project_generated=1
 echo Project files generated.
 echo %configure_flags% > .gyp_configure_stamp
-where /R . /T *.gyp? >> .gyp_configure_stamp
+where /R . /T *.gyp* >> .gyp_configure_stamp
 
 :msbuild
 @rem Skip build if requested.
@@ -405,6 +446,8 @@ copy /Y ..\CHANGELOG.md %TARGET_NAME%\ > nul
 if errorlevel 1 echo Cannot copy CHANGELOG.md && goto package_error
 robocopy ..\deps\npm %TARGET_NAME%\node_modules\npm /e /xd test > nul
 if errorlevel 8 echo Cannot copy npm package && goto package_error
+robocopy ..\deps\corepack %TARGET_NAME%\node_modules\corepack /e /xd test > nul
+if errorlevel 8 echo Cannot copy corepack package && goto package_error
 copy /Y ..\deps\npm\bin\npm %TARGET_NAME%\ > nul
 if errorlevel 1 echo Cannot copy npm && goto package_error
 copy /Y ..\deps\npm\bin\npm.cmd %TARGET_NAME%\ > nul
@@ -413,6 +456,10 @@ copy /Y ..\deps\npm\bin\npx %TARGET_NAME%\ > nul
 if errorlevel 1 echo Cannot copy npx && goto package_error
 copy /Y ..\deps\npm\bin\npx.cmd %TARGET_NAME%\ > nul
 if errorlevel 1 echo Cannot copy npx.cmd && goto package_error
+copy /Y ..\deps\corepack\shims\nodewin\corepack %TARGET_NAME%\ > nul
+if errorlevel 1 echo Cannot copy corepack && goto package_error
+copy /Y ..\deps\corepack\shims\nodewin\corepack.cmd %TARGET_NAME%\ > nul
+if errorlevel 1 echo Cannot copy corepack.cmd && goto package_error
 copy /Y ..\tools\msvs\nodevars.bat %TARGET_NAME%\ > nul
 if errorlevel 1 echo Cannot copy nodevars.bat && goto package_error
 copy /Y ..\tools\msvs\install_tools\*.* %TARGET_NAME%\ > nul
@@ -526,7 +573,7 @@ robocopy /e doc\api %config%\doc\api
 robocopy /e doc\api_assets %config%\doc\api\assets
 
 for %%F in (%config%\doc\api\*.md) do (
-  %node_exe% tools\doc\generate.js --node-version=v%FULLVERSION% %%F --output-directory=%%~dF%%~pF
+  %node_exe% tools\doc\generate.mjs --node-version=v%FULLVERSION% %%F --output-directory=%%~dF%%~pF
 )
 
 :run
@@ -543,7 +590,7 @@ for /d %%F in (test\addons\??_*) do (
   rd /s /q %%F
 )
 :: generate
-"%node_exe%" tools\doc\addon-verify.js
+"%node_exe%" tools\doc\addon-verify.mjs
 if %errorlevel% neq 0 exit /b %errorlevel%
 :: building addons
 setlocal
@@ -596,7 +643,7 @@ if defined test_node_inspect goto node-test-inspect
 goto node-tests
 
 :node-check-deopts
-python tools\test.py --mode=release --check-deopts parallel sequential -J
+python tools\test.py --mode=release --check-deopts parallel sequential
 if defined test_node_inspect goto node-test-inspect
 goto node-tests
 
@@ -651,7 +698,7 @@ goto lint-js
 if not defined lint_js goto lint-md-build
 if not exist tools\node_modules\eslint goto no-lint
 echo running lint-js
-%node_exe% tools\node_modules\eslint\bin\eslint.js --cache --report-unused-disable-directives --rule "linebreak-style: 0" .eslintrc.js benchmark doc lib test tools
+%node_exe% tools\node_modules\eslint\bin\eslint.js --cache --max-warnings=0 --report-unused-disable-directives --rule "linebreak-style: 0" .eslintrc.js benchmark doc lib test tools
 goto lint-md-build
 
 :no-lint
@@ -674,7 +721,21 @@ for /D %%D IN (doc\*) do (
     set "lint_md_files="%%F" !lint_md_files!"
   )
 )
-%node_exe% tools\lint-md.js -q -f %lint_md_files%
+%node_exe% tools\lint-md\lint-md.mjs %lint_md_files%
+ENDLOCAL
+goto exit
+
+:format-md
+if not defined lint_md goto exit
+echo Running Markdown formatter on docs...
+SETLOCAL ENABLEDELAYEDEXPANSION
+set lint_md_files=
+for /D %%D IN (doc\*) do (
+  for %%F IN (%%D\*.md) do (
+    set "lint_md_files="%%F" !lint_md_files!"
+  )
+)
+%node_exe% tools\lint-md\lint-md.mjs --format %lint_md_files%
 ENDLOCAL
 goto exit
 
@@ -685,7 +746,7 @@ set exit_code=1
 goto exit
 
 :help
-echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-benchmark/test-internet/test-pummel/test-simple/test-message/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-async-hooks/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [noetw] [ltcg] [licensetf] [sign] [ia32/x86/x64/arm64] [vs2019] [download-all] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
+echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-benchmark/test-internet/test-pummel/test-simple/test-message/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-async-hooks/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [noetw] [ltcg] [licensetf] [sign] [ia32/x86/x64/arm64] [vs2019/vs2022] [download-all] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
 echo Examples:
 echo   vcbuild.bat                          : builds release build
 echo   vcbuild.bat debug                    : builds debug build

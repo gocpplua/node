@@ -6,6 +6,7 @@ let globalDir = 'MISSING_GLOBAL_DIR'
 const _flatOptions = {
   depth: Infinity,
   global: false,
+  workspacesEnabled: true,
   get prefix () {
     return prefix
   },
@@ -62,6 +63,15 @@ const fixture = {
     c: {
       'package.json': JSON.stringify({
         name: 'c',
+        version: '1.0.0',
+        dependencies: {
+          ch: '1.0.0',
+        },
+      }),
+    },
+    ch: {
+      'package.json': JSON.stringify({
+        name: 'ch',
         version: '1.0.0',
       }),
     },
@@ -160,8 +170,8 @@ t.test('get list of package names', async t => {
       ['foo', '-g'],
       ['a-bar', '-g'],
       'a', 'b', 'c',
-      'd', 'e', 'f',
-      'g', 'bb',
+      'ch', 'd', 'e',
+      'f', 'g', 'bb',
     ],
     'should return list of package names and global flag'
   )
@@ -210,10 +220,12 @@ t.test('limit depth', async t => {
     [
       ['bar', '-g'],
       ['foo', '-g'],
+      // XXX https://github.com/npm/statusboard/issues/380
+      ['a-bar', '-g'],
       'a', 'b',
-      'c', 'd',
-      'e', 'f',
-      'g',
+      'c', 'ch',
+      'd', 'e',
+      'f', 'g',
     ],
     'should print only packages up to the specified depth'
   )
@@ -239,6 +251,8 @@ t.test('limit depth as global', async t => {
     [
       'bar',
       'foo',
+      // https://github.com/npm/statusboard/issues/380
+      'a-bar',
     ],
     'should reorder so that packages above that level depth goes last'
   )

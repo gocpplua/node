@@ -14,6 +14,12 @@
 
 #include "math.h"
 
+#if OPENSSL_VERSION_MAJOR >= 3
+#include "openssl/provider.h"
+#endif
+
+#include <openssl/rand.h>
+
 namespace node {
 
 using v8::ArrayBuffer;
@@ -32,6 +38,7 @@ using v8::NewStringType;
 using v8::Nothing;
 using v8::Object;
 using v8::String;
+using v8::TryCatch;
 using v8::Uint32;
 using v8::Uint8Array;
 using v8::Value;
@@ -99,20 +106,67 @@ int NoPasswordCallback(char* buf, int size, int rwflag, void* u) {
   return 0;
 }
 
+bool ProcessFipsOptions() {
+  /* Override FIPS settings in configuration file, if needed. */
+  if (per_process::cli_options->enable_fips_crypto ||
+      per_process::cli_options->force_fips_crypto) {
+#if OPENSSL_VERSION_MAJOR >= 3
+    OSSL_PROVIDER* fips_provider = OSSL_PROVIDER_load(nullptr, "fips");
+    if (fips_provider == nullptr)
+      return false;
+    OSSL_PROVIDER_unload(fips_provider);
+
+    return EVP_default_properties_enable_fips(nullptr, 1) &&
+           EVP_default_properties_is_fips_enabled(nullptr);
+#else
+    return FIPS_mode() == 0 && FIPS_mode_set(1);
+#endif
+  }
+  return true;
+}
+
+bool InitCryptoOnce(Isolate* isolate) {
+  static uv_once_t init_once = UV_ONCE_INIT;
+  TryCatch try_catch{isolate};
+  uv_once(&init_once, InitCryptoOnce);
+  if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
+    try_catch.ReThrow();
+    return false;
+  }
+  return true;
+}
+
+// Protect accesses to FIPS state with a mutex. This should potentially
+// be part of a larger mutex for global OpenSSL state.
+static Mutex fips_mutex;
+
 void InitCryptoOnce() {
+  Mutex::ScopedLock lock(per_process::cli_options_mutex);
+  Mutex::ScopedLock fips_lock(fips_mutex);
 #ifndef OPENSSL_IS_BORINGSSL
   OPENSSL_INIT_SETTINGS* settings = OPENSSL_INIT_new();
 
+#if OPENSSL_VERSION_MAJOR < 3
   // --openssl-config=...
   if (!per_process::cli_options->openssl_config.empty()) {
     const char* conf = per_process::cli_options->openssl_config.c_str();
     OPENSSL_INIT_set_config_filename(settings, conf);
   }
+#endif
+
+#if OPENSSL_VERSION_MAJOR >= 3
+  // --openssl-legacy-provider
+  if (per_process::cli_options->openssl_legacy_provider) {
+    OSSL_PROVIDER* legacy_provider = OSSL_PROVIDER_load(nullptr, "legacy");
+    if (legacy_provider == nullptr) {
+      fprintf(stderr, "Unable to load legacy provider.\n");
+    }
+  }
+#endif
 
   OPENSSL_init_ssl(0, settings);
   OPENSSL_INIT_free(settings);
   settings = nullptr;
-#endif
 
 #ifndef _WIN32
   if (per_process::cli_options->secure_heap != 0) {
@@ -133,24 +187,7 @@ void InitCryptoOnce() {
   }
 #endif
 
-  /* Override FIPS settings in cnf file, if needed. */
-  unsigned long err = 0;  // NOLINT(runtime/int)
-  if (per_process::cli_options->enable_fips_crypto ||
-      per_process::cli_options->force_fips_crypto) {
-#if OPENSSL_VERSION_MAJOR >= 3
-    if (0 == EVP_default_properties_is_fips_enabled(nullptr) &&
-        !EVP_default_properties_enable_fips(nullptr, 1)) {
-#else
-    if (0 == FIPS_mode() && !FIPS_mode_set(1)) {
-#endif
-      err = ERR_get_error();
-    }
-  }
-  if (0 != err) {
-    auto* isolate = Isolate::GetCurrent();
-    auto* env = Environment::GetCurrent(isolate);
-    return ThrowCryptoError(env, err);
-  }
+#endif  // OPENSSL_IS_BORINGSSL
 
   // Turn off compression. Saves memory and protects against CRIME attacks.
   // No-op with OPENSSL_NO_COMP builds of OpenSSL.
@@ -165,6 +202,9 @@ void InitCryptoOnce() {
 }
 
 void GetFipsCrypto(const FunctionCallbackInfo<Value>& args) {
+  Mutex::ScopedLock lock(per_process::cli_options_mutex);
+  Mutex::ScopedLock fips_lock(fips_mutex);
+
 #if OPENSSL_VERSION_MAJOR >= 3
   args.GetReturnValue().Set(EVP_default_properties_is_fips_enabled(nullptr) ?
       1 : 0);
@@ -174,14 +214,19 @@ void GetFipsCrypto(const FunctionCallbackInfo<Value>& args) {
 }
 
 void SetFipsCrypto(const FunctionCallbackInfo<Value>& args) {
+  Mutex::ScopedLock lock(per_process::cli_options_mutex);
+  Mutex::ScopedLock fips_lock(fips_mutex);
+
   CHECK(!per_process::cli_options->force_fips_crypto);
   Environment* env = Environment::GetCurrent(args);
+  // TODO(addaleax): This should not be possible to set from worker threads.
+  // CHECK(env->owns_process_state());
   bool enable = args[0]->BooleanValue(env->isolate());
 
 #if OPENSSL_VERSION_MAJOR >= 3
   if (enable == EVP_default_properties_is_fips_enabled(nullptr))
 #else
-  if (enable == FIPS_mode())
+  if (static_cast<int>(enable) == FIPS_mode())
 #endif
     return;  // No action needed.
 
@@ -196,8 +241,20 @@ void SetFipsCrypto(const FunctionCallbackInfo<Value>& args) {
 }
 
 void TestFipsCrypto(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  Mutex::ScopedLock lock(per_process::cli_options_mutex);
+  Mutex::ScopedLock fips_lock(fips_mutex);
+
 #ifdef OPENSSL_FIPS
+#if OPENSSL_VERSION_MAJOR >= 3
+  OSSL_PROVIDER* fips_provider = nullptr;
+  if (OSSL_PROVIDER_available(nullptr, "fips")) {
+    fips_provider = OSSL_PROVIDER_load(nullptr, "fips");
+  }
+  const auto enabled = fips_provider == nullptr ? 0 :
+      OSSL_PROVIDER_self_test(fips_provider) ? 1 : 0;
+#else
   const auto enabled = FIPS_selftest() ? 1 : 0;
+#endif
 #else  // OPENSSL_FIPS
   const auto enabled = 0;
 #endif  // OPENSSL_FIPS
@@ -308,6 +365,11 @@ std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore() {
 Local<ArrayBuffer> ByteSource::ToArrayBuffer(Environment* env) {
   std::unique_ptr<BackingStore> store = ReleaseToBackingStore();
   return ArrayBuffer::New(env->isolate(), std::move(store));
+}
+
+MaybeLocal<Uint8Array> ByteSource::ToBuffer(Environment* env) {
+  Local<ArrayBuffer> ab = ToArrayBuffer(env);
+  return Buffer::New(env, ab, 0, ab->ByteLength());
 }
 
 const char* ByteSource::get() const {
@@ -562,9 +624,8 @@ EnginePointer LoadEngineById(const char* id, CryptoErrorStore* errors) {
   }
 
   if (!engine && errors != nullptr) {
-    if (ERR_get_error() != 0) {
-      errors->Capture();
-    } else {
+    errors->Capture();
+    if (errors->Empty()) {
       errors->Insert(NodeCryptoError::ENGINE_NOT_FOUND, id);
     }
   }
@@ -693,6 +754,18 @@ void Initialize(Environment* env, Local<Object> target) {
   env->SetMethod(target, "secureBuffer", SecureBuffer);
   env->SetMethod(target, "secureHeapUsed", SecureHeapUsed);
 }
+void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+#ifndef OPENSSL_NO_ENGINE
+  registry->Register(SetEngine);
+#endif  // !OPENSSL_NO_ENGINE
+
+  registry->Register(GetFipsCrypto);
+  registry->Register(SetFipsCrypto);
+  registry->Register(TestFipsCrypto);
+  registry->Register(SecureBuffer);
+  registry->Register(SecureHeapUsed);
+}
+
 }  // namespace Util
 
 }  // namespace crypto

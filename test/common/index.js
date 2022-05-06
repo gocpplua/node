@@ -19,7 +19,6 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-/* eslint-disable node-core/require-common-first, node-core/required-modules */
 /* eslint-disable node-core/crypto-check */
 'use strict';
 const process = global.process;  // Some tests tamper with the process global.
@@ -34,7 +33,7 @@ const util = require('util');
 const { isMainThread } = require('worker_threads');
 
 const tmpdir = require('./tmpdir');
-const bits = ['arm64', 'mips', 'mipsel', 'ppc64', 's390x', 'x64']
+const bits = ['arm64', 'mips', 'mipsel', 'ppc64', 'riscv64', 's390x', 'x64']
   .includes(process.arch) ? 64 : 32;
 const hasIntl = !!process.config.variables.v8_enable_i18n_support;
 
@@ -69,12 +68,12 @@ if (process.argv.length === 2 &&
     !process.env.NODE_SKIP_FLAG_CHECK &&
     isMainThread &&
     hasCrypto &&
-    require.main &&
-    require('cluster').isPrimary) {
+    require('cluster').isPrimary &&
+    fs.existsSync(process.argv[1])) {
   // The copyright notice is relatively big and the flags could come afterwards.
   const bytesToRead = 1500;
   const buffer = Buffer.allocUnsafe(bytesToRead);
-  const fd = fs.openSync(require.main.filename, 'r');
+  const fd = fs.openSync(process.argv[1], 'r');
   const bytesRead = fs.readSync(fd, buffer, 0, bytesToRead);
   fs.closeSync(fd);
   const source = buffer.toString('utf8', 0, bytesRead);
@@ -121,6 +120,17 @@ const isFreeBSD = process.platform === 'freebsd';
 const isOpenBSD = process.platform === 'openbsd';
 const isLinux = process.platform === 'linux';
 const isOSX = process.platform === 'darwin';
+const isPi = (() => {
+  try {
+    // Normal Raspberry Pi detection is to find the `Raspberry Pi` string in
+    // the contents of `/sys/firmware/devicetree/base/model` but that doesn't
+    // work inside a container. Match the chipset model number instead.
+    const cpuinfo = fs.readFileSync('/proc/cpuinfo', { encoding: 'utf8' });
+    return /^Hardware\s*:\s*(.*)$/im.exec(cpuinfo)?.[1] === 'BCM2835';
+  } catch {
+    return false;
+  }
+})();
 
 const isDumbTerminal = process.env.TERM === 'dumb';
 
@@ -247,18 +257,10 @@ function platformTimeout(ms) {
   if (isAIX)
     return multipliers.two * ms; // Default localhost speed is slower on AIX
 
-  if (process.arch !== 'arm')
-    return ms;
+  if (isPi)
+    return multipliers.two * ms;  // Raspberry Pi devices
 
-  const armv = process.config.variables.arm_version;
-
-  if (armv === '6')
-    return multipliers.seven * ms;  // ARMv6
-
-  if (armv === '7')
-    return multipliers.two * ms;  // ARMv7
-
-  return ms; // ARMv8+
+  return ms;
 }
 
 let knownGlobals = [
@@ -276,7 +278,7 @@ let knownGlobals = [
 
 // TODO(@jasnell): This check can be temporary. AbortController is
 // not currently supported in either Node.js 12 or 10, making it
-// difficult to run tests comparitively on those versions. Once
+// difficult to run tests comparatively on those versions. Once
 // all supported versions have AbortController as a global, this
 // check can be removed and AbortController can be added to the
 // knownGlobals list above.
@@ -289,6 +291,50 @@ if (global.gc) {
 
 if (global.performance) {
   knownGlobals.push(global.performance);
+}
+if (global.PerformanceMark) {
+  knownGlobals.push(global.PerformanceMark);
+}
+if (global.PerformanceMeasure) {
+  knownGlobals.push(global.PerformanceMeasure);
+}
+
+// TODO(@ethan-arrowood): Similar to previous checks, this can be temporary
+// until v16.x is EOL. Once all supported versions have structuredClone we
+// can add this to the list above instead.
+if (global.structuredClone) {
+  knownGlobals.push(global.structuredClone);
+}
+
+if (global.fetch) {
+  knownGlobals.push(fetch);
+}
+if (hasCrypto && global.crypto) {
+  knownGlobals.push(global.crypto);
+  knownGlobals.push(global.Crypto);
+  knownGlobals.push(global.CryptoKey);
+  knownGlobals.push(global.SubtleCrypto);
+}
+if (global.ReadableStream) {
+  knownGlobals.push(
+    global.ReadableStream,
+    global.ReadableStreamDefaultReader,
+    global.ReadableStreamBYOBReader,
+    global.ReadableStreamBYOBRequest,
+    global.ReadableByteStreamController,
+    global.ReadableStreamDefaultController,
+    global.TransformStream,
+    global.TransformStreamDefaultController,
+    global.WritableStream,
+    global.WritableStreamDefaultWriter,
+    global.WritableStreamDefaultController,
+    global.ByteLengthQueuingStrategy,
+    global.CountQueuingStrategy,
+    global.TextEncoderStream,
+    global.TextDecoderStream,
+    global.CompressionStream,
+    global.DecompressionStream,
+  );
 }
 
 function allowGlobals(...allowlist) {
@@ -498,12 +544,12 @@ function nodeProcessAborted(exitCode, signal) {
   const expectedSignals = ['SIGILL', 'SIGTRAP', 'SIGABRT'];
 
   // On Windows, 'aborts' are of 2 types, depending on the context:
-  // (i) Forced access violation, if --abort-on-uncaught-exception is on
-  // which corresponds to exit code 3221225477 (0xC0000005)
+  // (i) Exception breakpoint, if --abort-on-uncaught-exception is on
+  // which corresponds to exit code 2147483651 (0x80000003)
   // (ii) Otherwise, _exit(134) which is called in place of abort() due to
   // raising SIGABRT exiting with ambiguous exit code '3' by default
   if (isWindows)
-    expectedExitCodes = [0xC0000005, 134];
+    expectedExitCodes = [0x80000003, 134];
 
   // When using --abort-on-uncaught-exception, V8 will use
   // base::OS::Abort to terminate the process.
@@ -540,12 +586,16 @@ function _expectWarning(name, expected, code) {
     expected.forEach(([_, code]) => assert(code, expected));
   }
   return mustCall((warning) => {
-    const [ message, code ] = expected.shift();
+    const expectedProperties = expected.shift();
+    if (!expectedProperties) {
+      assert.fail(`Unexpected extra warning received: ${warning}`);
+    }
+    const [ message, code ] = expectedProperties;
     assert.strictEqual(warning.name, name);
     if (typeof message === 'string') {
       assert.strictEqual(warning.message, message);
     } else {
-      assert(message.test(warning.message));
+      assert.match(warning.message, message);
     }
     assert.strictEqual(warning.code, code);
   }, expected.length);
@@ -767,6 +817,7 @@ const common = {
   isMainThread,
   isOpenBSD,
   isOSX,
+  isPi,
   isSunOS,
   isWindows,
   localIPv6Hosts,
@@ -788,11 +839,6 @@ const common = {
   skipIfInspectorDisabled,
   skipIfWorker,
 
-  get enoughTestCpu() {
-    const cpus = require('os').cpus();
-    return Array.isArray(cpus) && (cpus.length > 1 || cpus[0].speed > 999);
-  },
-
   get enoughTestMem() {
     return require('os').totalmem() > 0x70000000; /* 1.75 Gb */
   },
@@ -806,7 +852,7 @@ const common = {
     const re = isWindows ? /Loopback Pseudo-Interface/ : /lo/;
     return Object.keys(iFaces).some((name) => {
       return re.test(name) &&
-             iFaces[name].some(({ family }) => family === 'IPv6');
+             iFaces[name].some(({ family }) => family === 6);
     });
   },
 
@@ -881,8 +927,14 @@ const common = {
       throw new Error('common.PORT cannot be used in a parallelized test');
     }
     return +process.env.NODE_COMMON_PORT || 12346;
-  }
+  },
 
+  /**
+   * Returns the EOL character used by this Git checkout.
+   */
+  get checkoutEOL() {
+    return fs.readFileSync(__filename).includes('\r\n') ? '\r\n' : '\n';
+  },
 };
 
 const validProperties = new Set(Object.keys(common));

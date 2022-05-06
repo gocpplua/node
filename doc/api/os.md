@@ -6,14 +6,15 @@
 
 <!-- source_link=lib/os.js -->
 
-The `os` module provides operating system-related utility methods and
+The `node:os` module provides operating system-related utility methods and
 properties. It can be accessed using:
 
 ```js
-const os = require('os');
+const os = require('node:os');
 ```
 
 ## `os.EOL`
+
 <!-- YAML
 added: v0.7.8
 -->
@@ -26,6 +27,7 @@ The operating system-specific end-of-line marker.
 * `\r\n` on Windows
 
 ## `os.arch()`
+
 <!-- YAML
 added: v0.5.0
 -->
@@ -34,11 +36,12 @@ added: v0.5.0
 
 Returns the operating system CPU architecture for which the Node.js binary was
 compiled. Possible values are `'arm'`, `'arm64'`, `'ia32'`, `'mips'`,
-`'mipsel'`, `'ppc'`, `'ppc64'`, `'s390'`, `'s390x'`, `'x32'`, and `'x64'`.
+`'mipsel'`, `'ppc'`, `'ppc64'`, `'s390'`, `'s390x'`, and `'x64'`.
 
 The return value is equivalent to [`process.arch`][].
 
 ## `os.constants`
+
 <!-- YAML
 added: v6.3.0
 -->
@@ -47,14 +50,15 @@ added: v6.3.0
 
 Contains commonly used operating system-specific constants for error codes,
 process signals, and so on. The specific constants defined are described in
-[OS constants](#os_os_constants_1).
+[OS constants](#os-constants).
 
 ## `os.cpus()`
+
 <!-- YAML
 added: v0.3.3
 -->
 
-* Returns: {Object[]}
+* Returns: {Object\[]}
 
 Returns an array of objects containing information about each logical CPU core.
 
@@ -70,6 +74,7 @@ The properties included on each object include:
   * `irq` {number} The number of milliseconds the CPU has spent in irq mode.
 
 <!-- eslint-disable semi -->
+
 ```js
 [
   {
@@ -122,7 +127,23 @@ The properties included on each object include:
 `nice` values are POSIX-only. On Windows, the `nice` values of all processors
 are always 0.
 
+## `os.devNull`
+
+<!-- YAML
+added:
+  - v16.3.0
+  - v14.18.0
+-->
+
+* {string}
+
+The platform-specific file path of the null device.
+
+* `\\.\nul` on Windows
+* `/dev/null` on POSIX
+
 ## `os.endianness()`
+
 <!-- YAML
 added: v0.9.4
 -->
@@ -135,6 +156,7 @@ binary was compiled.
 Possible values are `'BE'` for big endian and `'LE'` for little endian.
 
 ## `os.freemem()`
+
 <!-- YAML
 added: v0.3.3
 -->
@@ -144,6 +166,7 @@ added: v0.3.3
 Returns the amount of free system memory in bytes as an integer.
 
 ## `os.getPriority([pid])`
+
 <!-- YAML
 added: v10.10.0
 -->
@@ -156,6 +179,7 @@ Returns the scheduling priority for the process specified by `pid`. If `pid` is
 not provided or is `0`, the priority of the current process is returned.
 
 ## `os.homedir()`
+
 <!-- YAML
 added: v2.3.0
 -->
@@ -171,6 +195,7 @@ On Windows, it uses the `USERPROFILE` environment variable if defined.
 Otherwise it uses the path to the profile directory of the current user.
 
 ## `os.hostname()`
+
 <!-- YAML
 added: v0.3.3
 -->
@@ -180,11 +205,12 @@ added: v0.3.3
 Returns the host name of the operating system as a string.
 
 ## `os.loadavg()`
+
 <!-- YAML
 added: v0.3.3
 -->
 
-* Returns: {number[]}
+* Returns: {number\[]}
 
 Returns an array containing the 1, 5, and 15 minute load averages.
 
@@ -195,8 +221,13 @@ The load average is a Unix-specific concept. On Windows, the return value is
 always `[0, 0, 0]`.
 
 ## `os.networkInterfaces()`
+
 <!-- YAML
 added: v0.6.0
+changes:
+  - version: v18.0.0
+    pr-url: https://github.com/nodejs/node/pull/41431
+    description: The `family` property now returns a number instead of a string.
 -->
 
 * Returns: {Object}
@@ -211,24 +242,25 @@ The properties available on the assigned network address object include:
 
 * `address` {string} The assigned IPv4 or IPv6 address
 * `netmask` {string} The IPv4 or IPv6 network mask
-* `family` {string} Either `IPv4` or `IPv6`
+* `family` {number} Either `4` (for IPv4) or `6` (for IPv6)
 * `mac` {string} The MAC address of the network interface
 * `internal` {boolean} `true` if the network interface is a loopback or
   similar interface that is not remotely accessible; otherwise `false`
 * `scopeid` {number} The numeric IPv6 scope ID (only specified when `family`
-  is `IPv6`)
+  is `6`)
 * `cidr` {string} The assigned IPv4 or IPv6 address with the routing prefix
   in CIDR notation. If the `netmask` is invalid, this property is set
   to `null`.
 
 <!-- eslint-skip -->
+
 ```js
 {
   lo: [
     {
       address: '127.0.0.1',
       netmask: '255.0.0.0',
-      family: 'IPv4',
+      family: 4,
       mac: '00:00:00:00:00:00',
       internal: true,
       cidr: '127.0.0.1/8'
@@ -236,7 +268,7 @@ The properties available on the assigned network address object include:
     {
       address: '::1',
       netmask: 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
-      family: 'IPv6',
+      family: 6,
       mac: '00:00:00:00:00:00',
       scopeid: 0,
       internal: true,
@@ -247,7 +279,7 @@ The properties available on the assigned network address object include:
     {
       address: '192.168.1.108',
       netmask: '255.255.255.0',
-      family: 'IPv4',
+      family: 4,
       mac: '01:02:03:0a:0b:0c',
       internal: false,
       cidr: '192.168.1.108/24'
@@ -255,7 +287,7 @@ The properties available on the assigned network address object include:
     {
       address: 'fe80::a00:27ff:fe4e:66a1',
       netmask: 'ffff:ffff:ffff:ffff::',
-      family: 'IPv6',
+      family: 6,
       mac: '01:02:03:0a:0b:0c',
       scopeid: 1,
       internal: false,
@@ -266,15 +298,17 @@ The properties available on the assigned network address object include:
 ```
 
 ## `os.platform()`
+
 <!-- YAML
 added: v0.5.0
 -->
 
 * Returns: {string}
 
-Returns a string identifying the operating system platform. The value is set
-at compile time. Possible values are `'aix'`, `'darwin'`, `'freebsd'`,
-`'linux'`, `'openbsd'`, `'sunos'`, and `'win32'`.
+Returns a string identifying the operating system platform for which
+the Node.js binary was compiled. The value is set at compile time.
+Possible values are `'aix'`, `'darwin'`, `'freebsd'`,`'linux'`,
+`'openbsd'`, `'sunos'`, and `'win32'`.
 
 The return value is equivalent to [`process.platform`][].
 
@@ -282,6 +316,7 @@ The value `'android'` may also be returned if Node.js is built on the Android
 operating system. [Android support is experimental][Android building].
 
 ## `os.release()`
+
 <!-- YAML
 added: v0.3.3
 -->
@@ -295,6 +330,7 @@ On POSIX systems, the operating system release is determined by calling
 <https://en.wikipedia.org/wiki/Uname#Examples> for more information.
 
 ## `os.setPriority([pid, ]priority)`
+
 <!-- YAML
 added: v10.10.0
 -->
@@ -318,6 +354,7 @@ privileges. Otherwise the set priority will be silently reduced to
 `PRIORITY_HIGH`.
 
 ## `os.tmpdir()`
+
 <!-- YAML
 added: v0.9.9
 changes:
@@ -333,6 +370,7 @@ Returns the operating system's default directory for temporary files as a
 string.
 
 ## `os.totalmem()`
+
 <!-- YAML
 added: v0.3.3
 -->
@@ -342,6 +380,7 @@ added: v0.3.3
 Returns the total amount of system memory in bytes as an integer.
 
 ## `os.type()`
+
 <!-- YAML
 added: v0.3.3
 -->
@@ -355,6 +394,7 @@ See <https://en.wikipedia.org/wiki/Uname#Examples> for additional information
 about the output of running [`uname(3)`][] on various operating systems.
 
 ## `os.uptime()`
+
 <!-- YAML
 added: v0.3.3
 changes:
@@ -369,6 +409,7 @@ changes:
 Returns the system uptime in number of seconds.
 
 ## `os.userInfo([options])`
+
 <!-- YAML
 added: v6.0.0
 -->
@@ -392,6 +433,7 @@ operating system response.
 Throws a [`SystemError`][] if a user has no `username` or `homedir`.
 
 ## `os.version()`
+
 <!-- YAML
 added:
  - v13.11.0
@@ -414,6 +456,7 @@ The following constants are exported by `os.constants`.
 Not all constants will be available on every operating system.
 
 ### Signal constants
+
 <!-- YAML
 changes:
   - version: v5.11.0
@@ -916,7 +959,7 @@ The following error constants are exported by `os.constants.errno`.
   </tr>
   <tr>
     <td><code>EXDEV</code></td>
-    <td>Indicates an improper link.
+    <td>Indicates an improper link.</td>
   </tr>
 </table>
 
@@ -1203,6 +1246,7 @@ information.
 </table>
 
 ### Priority constants
+
 <!-- YAML
 added: v10.10.0
 -->
@@ -1271,7 +1315,7 @@ The following process scheduling constants are exported by
 
 [Android building]: https://github.com/nodejs/node/blob/HEAD/BUILDING.md#androidandroid-based-devices-eg-firefox-os
 [EUID]: https://en.wikipedia.org/wiki/User_identifier#Effective_user_ID
-[`SystemError`]: errors.md#errors_class_systemerror
-[`process.arch`]: process.md#process_process_arch
-[`process.platform`]: process.md#process_process_platform
+[`SystemError`]: errors.md#class-systemerror
+[`process.arch`]: process.md#processarch
+[`process.platform`]: process.md#processplatform
 [`uname(3)`]: https://linux.die.net/man/3/uname

@@ -31,7 +31,8 @@ enum PKEncodingType {
 
 enum PKFormatType {
   kKeyFormatDER,
-  kKeyFormatPEM
+  kKeyFormatPEM,
+  kKeyFormatJWK
 };
 
 enum KeyType {
@@ -149,8 +150,8 @@ class KeyObjectData : public MemoryRetainer {
   size_t GetSymmetricKeySize() const;
 
   void MemoryInfo(MemoryTracker* tracker) const override;
-  SET_MEMORY_INFO_NAME(KeyObjectData);
-  SET_SELF_SIZE(KeyObjectData);
+  SET_MEMORY_INFO_NAME(KeyObjectData)
+  SET_SELF_SIZE(KeyObjectData)
 
  private:
   explicit KeyObjectData(ByteSource symmetric_key);
@@ -168,6 +169,7 @@ class KeyObjectData : public MemoryRetainer {
 class KeyObjectHandle : public BaseObject {
  public:
   static v8::Local<v8::Function> Initialize(Environment* env);
+  static void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 
   static v8::MaybeLocal<v8::Object> Create(Environment* env,
                                            std::shared_ptr<KeyObjectData> data);
@@ -187,6 +189,7 @@ class KeyObjectHandle : public BaseObject {
   static void InitEDRaw(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void InitJWK(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void GetKeyDetail(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void Equals(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   static void ExportJWK(const v8::FunctionCallbackInfo<v8::Value>& args);
 
@@ -215,6 +218,7 @@ class KeyObjectHandle : public BaseObject {
 class NativeKeyObject : public BaseObject {
  public:
   static void Initialize(Environment* env, v8::Local<v8::Object> target);
+  static void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void CreateNativeKeyObjectClass(
@@ -315,6 +319,10 @@ class KeyExportJob final : public CryptoJob<KeyExportTraits> {
     CryptoJob<KeyExportTraits>::Initialize(New, env, target);
   }
 
+  static void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+    CryptoJob<KeyExportTraits>::RegisterExternalReferences(New, registry);
+  }
+
   KeyExportJob(
       Environment* env,
       v8::Local<v8::Object> object,
@@ -402,6 +410,7 @@ WebCryptoKeyExportStatus PKEY_PKCS8_Export(
 
 namespace Keys {
 void Initialize(Environment* env, v8::Local<v8::Object> target);
+void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 }  // namespace Keys
 
 }  // namespace crypto

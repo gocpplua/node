@@ -4,10 +4,8 @@ const common = require('../common');
 if (!common.hasCrypto)
   common.skip('missing crypto');
 
-if (common.hasOpenSSL3)
-  common.skip('temporarily skipping for OpenSSL 3.0-alpha15');
-
 const assert = require('assert');
+const { types: { isKeyObject } } = require('util');
 const {
   createCipheriv,
   createDecipheriv,
@@ -23,7 +21,9 @@ const {
   privateDecrypt,
   privateEncrypt,
   getCurves,
-  generateKeyPairSync
+  generateKeySync,
+  generateKeyPairSync,
+  webcrypto,
 } = require('crypto');
 
 const fixtures = require('../common/fixtures');
@@ -306,7 +306,7 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
   assert.throws(() => {
     createPrivateKey({ key: '' });
   }, common.hasOpenSSL3 ? {
-    message: 'Failed to read private key',
+    message: 'error:1E08010C:DECODER routines::unsupported',
   } : {
     message: 'error:0909006C:PEM routines:get_name:no start line',
     code: 'ERR_OSSL_PEM_NO_START_LINE',
@@ -546,9 +546,7 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
     format: 'pem',
     passphrase: Buffer.alloc(1024, 'a')
   }), {
-    message: common.hasOpenSSL3 ?
-      'error:07880109:common libcrypto routines::interrupted or cancelled' :
-      /bad decrypt/
+    message: /bad decrypt/
   });
 
   const publicKey = createPublicKey(publicDsa);
@@ -583,11 +581,21 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
     const publicKey = createPublicKey(publicPem);
     const privateKey = createPrivateKey(privatePem);
 
+    // Because no RSASSA-PSS-params appears in the PEM, no defaults should be
+    // added for the PSS parameters. This is different from an empty
+    // RSASSA-PSS-params sequence (see test below).
+    const expectedKeyDetails = {
+      modulusLength: 2048,
+      publicExponent: 65537n
+    };
+
     assert.strictEqual(publicKey.type, 'public');
     assert.strictEqual(publicKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(publicKey.asymmetricKeyDetails, expectedKeyDetails);
 
     assert.strictEqual(privateKey.type, 'private');
     assert.strictEqual(privateKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(privateKey.asymmetricKeyDetails, expectedKeyDetails);
 
     assert.throws(
       () => publicKey.export({ format: 'jwk' }),
@@ -623,6 +631,38 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
     }, {
       code: 'ERR_CRYPTO_INCOMPATIBLE_KEY_OPTIONS'
     });
+  }
+
+  {
+    // This key pair enforces sha1 as the message digest and the MGF1
+    // message digest and a salt length of 20 bytes.
+
+    const publicPem = fixtures.readKey('rsa_pss_public_2048_sha1_sha1_20.pem');
+    const privatePem =
+        fixtures.readKey('rsa_pss_private_2048_sha1_sha1_20.pem');
+
+    const publicKey = createPublicKey(publicPem);
+    const privateKey = createPrivateKey(privatePem);
+
+    // Unlike the previous key pair, this key pair contains an RSASSA-PSS-params
+    // sequence. However, because all values in the RSASSA-PSS-params are set to
+    // their defaults (see RFC 3447), the ASN.1 structure contains an empty
+    // sequence. Node.js should add the default values to the key details.
+    const expectedKeyDetails = {
+      modulusLength: 2048,
+      publicExponent: 65537n,
+      hashAlgorithm: 'sha1',
+      mgf1HashAlgorithm: 'sha1',
+      saltLength: 20
+    };
+
+    assert.strictEqual(publicKey.type, 'public');
+    assert.strictEqual(publicKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(publicKey.asymmetricKeyDetails, expectedKeyDetails);
+
+    assert.strictEqual(privateKey.type, 'private');
+    assert.strictEqual(privateKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(privateKey.asymmetricKeyDetails, expectedKeyDetails);
   }
 
   {
@@ -683,11 +723,21 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
     const publicKey = createPublicKey(publicPem);
     const privateKey = createPrivateKey(privatePem);
 
+    const expectedKeyDetails = {
+      modulusLength: 2048,
+      publicExponent: 65537n,
+      hashAlgorithm: 'sha512',
+      mgf1HashAlgorithm: 'sha256',
+      saltLength: 20
+    };
+
     assert.strictEqual(publicKey.type, 'public');
     assert.strictEqual(publicKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(publicKey.asymmetricKeyDetails, expectedKeyDetails);
 
     assert.strictEqual(privateKey.type, 'private');
     assert.strictEqual(privateKey.asymmetricKeyType, 'rsa-pss');
+    assert.deepStrictEqual(privateKey.asymmetricKeyDetails, expectedKeyDetails);
 
     // Node.js usually uses the same hash function for the message and for MGF1.
     // However, when a different MGF1 message digest algorithm has been
@@ -773,4 +823,73 @@ const privateDsa = fixtures.readKey('dsa_private_encrypted_1025.pem',
       code: 'ERR_CRYPTO_JWK_UNSUPPORTED_CURVE',
       message: `Unsupported JWK EC curve: ${namedCurve}.`
     });
+}
+
+{
+  const buffer = Buffer.from('Hello World');
+  const keyObject = createSecretKey(buffer);
+  const keyPair = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  assert(isKeyObject(keyPair.publicKey));
+  assert(isKeyObject(keyPair.privateKey));
+  assert(isKeyObject(keyObject));
+
+  assert(!isKeyObject(buffer));
+
+  webcrypto.subtle.importKey(
+    'node.keyObject',
+    keyPair.publicKey,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    false,
+    [],
+  ).then((cryptoKey) => {
+    assert(!isKeyObject(cryptoKey));
+  });
+}
+
+{
+  const first = Buffer.from('Hello');
+  const second = Buffer.from('World');
+  const keyObject = createSecretKey(first);
+  assert(createSecretKey(first).equals(createSecretKey(first)));
+  assert(!createSecretKey(first).equals(createSecretKey(second)));
+
+  assert.throws(() => keyObject.equals(0), {
+    name: 'TypeError',
+    code: 'ERR_INVALID_ARG_TYPE',
+    message: 'The "otherKeyObject" argument must be an instance of KeyObject. Received type number (0)'
+  });
+
+  assert(keyObject.equals(keyObject));
+  assert(!keyObject.equals(createPublicKey(publicPem)));
+  assert(!keyObject.equals(createPrivateKey(privatePem)));
+}
+
+{
+  const first = generateKeyPairSync('ed25519');
+  const second = generateKeyPairSync('ed25519');
+  const secret = generateKeySync('aes', { length: 128 });
+
+  assert(first.publicKey.equals(first.publicKey));
+  assert(first.publicKey.equals(createPublicKey(
+    first.publicKey.export({ format: 'pem', type: 'spki' }))));
+  assert(!first.publicKey.equals(second.publicKey));
+  assert(!first.publicKey.equals(second.privateKey));
+  assert(!first.publicKey.equals(secret));
+
+  assert(first.privateKey.equals(first.privateKey));
+  assert(first.privateKey.equals(createPrivateKey(
+    first.privateKey.export({ format: 'pem', type: 'pkcs8' }))));
+  assert(!first.privateKey.equals(second.privateKey));
+  assert(!first.privateKey.equals(second.publicKey));
+  assert(!first.privateKey.equals(secret));
+}
+
+{
+  const first = generateKeyPairSync('ed25519');
+  const second = generateKeyPairSync('ed448');
+
+  assert(!first.publicKey.equals(second.publicKey));
+  assert(!first.publicKey.equals(second.privateKey));
+  assert(!first.privateKey.equals(second.privateKey));
+  assert(!first.privateKey.equals(second.publicKey));
 }

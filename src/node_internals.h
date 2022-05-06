@@ -39,11 +39,6 @@
 #include <string>
 #include <vector>
 
-// Custom constants used by both node_constants.cc and node_zlib.cc
-#define Z_MIN_WINDOWBITS 8
-#define Z_MAX_WINDOWBITS 15
-#define Z_DEFAULT_WINDOWBITS 15
-
 struct sockaddr;
 
 namespace node {
@@ -63,7 +58,7 @@ class Environment;
 // Convert a struct sockaddr to a { address: '1.2.3.4', port: 1234 } JS object.
 // Sets address and port properties on the info object and returns it.
 // If |info| is omitted, a new object is returned.
-v8::Local<v8::Object> AddressToJS(
+v8::MaybeLocal<v8::Object> AddressToJS(
     Environment* env,
     const sockaddr* addr,
     v8::Local<v8::Object> info = v8::Local<v8::Object>());
@@ -97,8 +92,8 @@ void SignalExit(int signal, siginfo_t* info, void* ucontext);
 std::string GetProcessTitle(const char* default_title);
 std::string GetHumanReadableProcessName();
 
-void InitializeContextRuntime(v8::Local<v8::Context>);
-bool InitializePrimordials(v8::Local<v8::Context> context);
+v8::Maybe<bool> InitializeContextRuntime(v8::Local<v8::Context> context);
+v8::Maybe<bool> InitializePrimordials(v8::Local<v8::Context> context);
 
 class NodeArrayBufferAllocator : public ArrayBufferAllocator {
  public:
@@ -288,7 +283,7 @@ class ThreadPoolWork {
 
 #if defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
 #define NODE_IMPLEMENTS_POSIX_CREDENTIALS 1
-#endif  // __POSIX__ && !defined(__ANDROID__) && !defined(__CloudABI__)
+#endif  // defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
 
 namespace credentials {
 bool SafeGetenv(const char* key, std::string* text, Environment* env = nullptr);
@@ -316,7 +311,21 @@ struct InitializationResult {
   std::vector<std::string> exec_args;
   bool early_return = false;
 };
+
+enum InitializationSettingsFlags : uint64_t {
+  kDefaultInitialization = 1 << 0,
+  kInitializeV8 = 1 << 1,
+  kRunPlatformInit = 1 << 2,
+  kInitOpenSSL = 1 << 3
+};
+
+// TODO(codebytere): eventually document and expose to embedders.
 InitializationResult InitializeOncePerProcess(int argc, char** argv);
+InitializationResult InitializeOncePerProcess(
+  int argc,
+  char** argv,
+  InitializationSettingsFlags flags,
+  ProcessFlags::Flags process_flags = ProcessFlags::kNoFlags);
 void TearDownOncePerProcess();
 void SetIsolateErrorHandlers(v8::Isolate* isolate, const IsolateSettings& s);
 void SetIsolateMiscHandlers(v8::Isolate* isolate, const IsolateSettings& s);
@@ -370,7 +379,7 @@ class DiagnosticFilename {
 };
 
 namespace heap {
-bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
+v8::Maybe<void> WriteSnapshot(Environment* env, const char* filename);
 }
 
 class TraceEventScope {

@@ -4,7 +4,7 @@
 #include "node_internals.h"
 #include "node_metadata.h"
 #include "node_options-inl.h"
-#include "node_process.h"
+#include "node_process-inl.h"
 #include "node_revert.h"
 #include "util-inl.h"
 
@@ -211,6 +211,11 @@ void PatchProcessObject(const FunctionCallbackInfo<Value>& args) {
 
 void RegisterProcessExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(RawDebug);
+  registry->Register(GetParentProcessId);
+  registry->Register(DebugPortSetter);
+  registry->Register(DebugPortGetter);
+  registry->Register(ProcessTitleSetter);
+  registry->Register(ProcessTitleGetter);
 }
 
 }  // namespace node

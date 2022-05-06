@@ -53,6 +53,14 @@ void Hmac::Initialize(Environment* env, Local<Object> target) {
   HmacJob::Initialize(env, target);
 }
 
+void Hmac::RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+  registry->Register(New);
+  registry->Register(HmacInit);
+  registry->Register(HmacUpdate);
+  registry->Register(HmacDigest);
+  HmacJob::RegisterExternalReferences(registry);
+}
+
 void Hmac::New(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   new Hmac(env, args.This());
@@ -116,8 +124,11 @@ void Hmac::HmacDigest(const FunctionCallbackInfo<Value>& args) {
   unsigned int md_len = 0;
 
   if (hmac->ctx_) {
-    HMAC_Final(hmac->ctx_.get(), md_value, &md_len);
+    bool ok = HMAC_Final(hmac->ctx_.get(), md_value, &md_len);
     hmac->ctx_.reset();
+    if (!ok) {
+      return ThrowCryptoError(env, ERR_get_error(), "Failed to finalize HMAC");
+    }
   }
 
   Local<Value> error;

@@ -1,4 +1,4 @@
-.TH "NPM\-INIT" "1" "April 2021" "" ""
+.TH "NPM\-INIT" "1" "May 2022" "" ""
 .SH "NAME"
 \fBnpm-init\fR \- Create a package\.json file
 .SS Synopsis
@@ -6,9 +6,10 @@
 .RS 2
 .nf
 npm init [\-\-force|\-f|\-\-yes|\-y|\-\-scope]
-npm init <@scope> (same as `npm exec <@scope>/create`)
-npm init [<@scope>/]<name> (same as `npm exec [<@scope>/]create\-<name>`)
-npm init [\-w <dir>] [args\.\.\.]
+npm init <@scope> (same as `npx <@scope>/create`)
+npm init [<@scope>/]<name> (same as `npx [<@scope>/]create\-<name>`)
+
+aliases: create, innit
 .fi
 .RE
 .SS Description
@@ -40,6 +41,19 @@ guesses based on existing fields, dependencies, and options selected\. It is
 strictly additive, so it will keep any fields and values that were already
 set\. You can also use \fB\-y\fP/\fB\-\-yes\fP to skip the questionnaire altogether\. If
 you pass \fB\-\-scope\fP, it will create a scoped package\.
+.P
+\fINote:\fR if a user already has the \fBcreate\-<initializer>\fP package
+globally installed, that will be what \fBnpm init\fP uses\.  If you want npm
+to use the latest version, or another specific version you must specify
+it:
+.RS 0
+.IP \(bu 2
+\fBnpm init foo@latest\fP # fetches and runs the latest \fBcreate\-foo\fP from
+  the registry
+.IP \(bu 2
+\fBnpm init foo@1\.2\.3\fP #  runs \fBcreate\-foo@1\.2\.3\fP specifically
+
+.RE
 .SS Forwarding additional options
 .P
 Any additional options will be passed directly to the command, so \fBnpm init
@@ -164,40 +178,72 @@ dot to represent the current directory in that context, e\.g: \fBreact\-app \.\f
        `\-\- \.\.\.
 .fi
 .RE
-.SS A note on caching
-.P
-The npm cli utilizes its internal package cache when using the package
-name specified\.  You can use the following to change how and when the
-cli uses this cache\. See npm help \fBcache\fP for more on
-how the cache works\.
-.SS prefer\-online
-.P
-Forces staleness checks for packages, making the cli look for updates
-immediately even if the package is already in the cache\.
-.SS prefer\-offline
-.P
-Bypasses staleness checks for packages\.  Missing data will still be
-requested from the server\. To force full offline mode, use \fBoffline\fP\|\.
-.SS offline
-.P
-Forces full offline mode\. Any packages not locally cached will result in
-an error\.
-.SS workspace
+.SS Configuration
+.SS \fByes\fP
 .RS 0
 .IP \(bu 2
-Alias: \fB\-w\fP
+Default: null
 .IP \(bu 2
-Type: Array
-.IP \(bu 2
-Default: \fB[]\fP
+Type: null or Boolean
 
 .RE
 .P
-Enable running \fBnpm init\fP in the context of workspaces, creating any missing
-folders, generating files and adding/updating the \fB"workspaces"\fP property of
-the project \fBpackage\.json\fP\|\.
+Automatically answer "yes" to any prompts that npm might print on the
+command line\.
+.SS \fBforce\fP
+.RS 0
+.IP \(bu 2
+Default: false
+.IP \(bu 2
+Type: Boolean
+
+.RE
 .P
-the provided names or paths provided\.
+Removes various protections against unfortunate side effects, common
+mistakes, unnecessary performance degradation, and malicious input\.
+.RS 0
+.IP \(bu 2
+Allow clobbering non\-npm files in global installs\.
+.IP \(bu 2
+Allow the \fBnpm version\fP command to work on an unclean git repository\.
+.IP \(bu 2
+Allow deleting the cache folder with \fBnpm cache clean\fP\|\.
+.IP \(bu 2
+Allow installing packages that have an \fBengines\fP declaration requiring a
+different version of npm\.
+.IP \(bu 2
+Allow installing packages that have an \fBengines\fP declaration requiring a
+different version of \fBnode\fP, even if \fB\-\-engine\-strict\fP is enabled\.
+.IP \(bu 2
+Allow \fBnpm audit fix\fP to install modules outside your stated dependency
+range (including SemVer\-major changes)\.
+.IP \(bu 2
+Allow unpublishing all versions of a published package\.
+.IP \(bu 2
+Allow conflicting peerDependencies to be installed in the root project\.
+.IP \(bu 2
+Implicitly set \fB\-\-yes\fP during \fBnpm init\fP\|\.
+.IP \(bu 2
+Allow clobbering existing values in \fBnpm pkg\fP
+.IP \(bu 2
+Allow unpublishing of entire packages (not just a single version)\.
+
+.RE
+.P
+If you don't have a clear idea of what you want to do, it is strongly
+recommended that you do not use this option!
+.SS \fBworkspace\fP
+.RS 0
+.IP \(bu 2
+Default:
+.IP \(bu 2
+Type: String (can be set multiple times)
+
+.RE
+.P
+Enable running a command in the context of the configured workspaces of the
+current project while filtering by running only the workspaces defined by
+this configuration option\.
 .P
 Valid values for the \fBworkspace\fP config are either:
 .RS 0
@@ -206,23 +252,56 @@ Workspace names
 .IP \(bu 2
 Path to a workspace directory
 .IP \(bu 2
-Path to a parent workspace directory (will result to selecting all of the
-children workspaces)
-
-.RE
-.SS workspaces
-.RS 0
-.IP \(bu 2
-Alias: \fB\-ws\fP
-.IP \(bu 2
-Type: Boolean
-.IP \(bu 2
-Default: \fBfalse\fP
+Path to a parent workspace directory (will result in selecting all
+workspaces within that folder)
 
 .RE
 .P
-Run \fBnpm init\fP in the context of all configured workspaces for the
-current project\.
+When set for the \fBnpm init\fP command, this may be set to the folder of a
+workspace which does not yet exist, to create the folder and set it up as a
+brand new workspace within the project\.
+.P
+This value is not exported to the environment for child processes\.
+.SS \fBworkspaces\fP
+.RS 0
+.IP \(bu 2
+Default: null
+.IP \(bu 2
+Type: null or Boolean
+
+.RE
+.P
+Set to true to run the command in the context of \fBall\fR configured
+workspaces\.
+.P
+Explicitly setting this to false will cause commands like \fBinstall\fP to
+ignore workspaces altogether\. When not set explicitly:
+.RS 0
+.IP \(bu 2
+Commands that operate on the \fBnode_modules\fP tree (install, update, etc\.)
+will link workspaces into the \fBnode_modules\fP folder\. \- Commands that do
+other things (test, exec, publish, etc\.) will operate on the root project,
+\fIunless\fR one or more workspaces are specified in the \fBworkspace\fP config\.
+
+.RE
+.P
+This value is not exported to the environment for child processes\.
+.SS \fBinclude\-workspace\-root\fP
+.RS 0
+.IP \(bu 2
+Default: false
+.IP \(bu 2
+Type: Boolean
+
+.RE
+.P
+Include the workspace root when workspaces are enabled for a command\.
+.P
+When false, specifying individual workspaces via the \fBworkspace\fP config, or
+all workspaces via the \fBworkspaces\fP flag, will cause npm to operate only on
+the specified workspaces, and not on the root project\.
+.P
+This value is not exported to the environment for child processes\.
 .SS See Also
 .RS 0
 .IP \(bu 2

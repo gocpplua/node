@@ -23,10 +23,7 @@ function startCLI(args, flags = [], spawnOpts = {}) {
     if (this === child.stderr) {
       stderrOutput += chunk;
     }
-    // TODO(trott): Figure out why the "breakpoints restored." message appears
-    // in unpredictable places especially on AIX in CI. We shouldn't be
-    // excluding it, but it gets in the way of the output checking for tests.
-    outputBuffer.push(chunk.replace(/\n*\d+ breakpoints restored\.\n*/mg, ''));
+    outputBuffer.push(chunk);
   }
 
   function getOutput() {
@@ -106,14 +103,13 @@ function startCLI(args, flags = [], spawnOpts = {}) {
       return this.waitFor(/>\s+$/);
     },
 
-    waitForInitialBreak() {
-      return this.waitFor(/break (?:on start )?in/i)
-        .then(() => {
-          if (isPreBreak(this.output)) {
-            return this.command('next', false)
-              .then(() => this.waitFor(/break in/));
-          }
-        });
+    async waitForInitialBreak() {
+      await this.waitFor(/break (?:on start )?in/i);
+
+      if (isPreBreak(this.output)) {
+        await this.command('next', false);
+        return this.waitFor(/break in/);
+      }
     },
 
     get breakInfo() {

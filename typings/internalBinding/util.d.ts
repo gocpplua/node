@@ -1,5 +1,5 @@
 declare namespace InternalUtilBinding {
-  class WeakReference<T extends object> {
+  class WeakReference<T> {
     constructor(value: T);
     get(): undefined | T;
     incRef(): void;
@@ -44,4 +44,5 @@ declare function InternalBinding(binding: 'util'): {
   shouldAbortOnUncaughtToggle: [shouldAbort: 0 | 1];
   WeakReference: typeof InternalUtilBinding.WeakReference;
   guessHandleType(fd: number): 'TCP' | 'TTY' | 'UDP' | 'FILE' | 'PIPE' | 'UNKNOWN';
+  toUSVString(str: string, start: number): string;
 };
